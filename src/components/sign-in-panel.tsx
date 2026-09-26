@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Mail } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { supabaseKey, supabaseUrl } from "@/lib/supabase/config";
 
 function GoogleIcon() {
   return (
@@ -25,6 +26,17 @@ function GitHubIcon() {
   );
 }
 
+async function providerEnabled(provider: "github" | "google") {
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: supabaseKey } });
+    if (!res.ok) return true; // Can't tell; let Supabase decide.
+    const settings = (await res.json()) as { external?: Record<string, boolean> };
+    return Boolean(settings.external?.[provider]);
+  } catch {
+    return true;
+  }
+}
+
 const btn = "inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-surface text-[15px] font-medium hover:border-line-strong hover:bg-surface-2 disabled:opacity-60";
 
 export function SignInPanel({ failed }: { failed: boolean }) {
@@ -43,10 +55,18 @@ export function SignInPanel({ failed }: { failed: boolean }) {
     }
     setBusy(provider);
     setError(null);
+    const label = provider === "github" ? "GitHub" : "Google";
+    // Supabase answers a disabled provider with a raw JSON error page, so check first.
+    const enabled = await providerEnabled(provider);
+    if (!enabled) {
+      setBusy(null);
+      setError(`${label} sign-in isn't switched on for this demo yet. Use the email link below, or explore without an account.`);
+      return;
+    }
     const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callback() } });
     if (error) {
       setBusy(null);
-      setError(provider === "google" ? "Google sign-in isn't enabled on this demo yet. Use GitHub or email." : error.message);
+      setError(error.message);
     }
   };
 
