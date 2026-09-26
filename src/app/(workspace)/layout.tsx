@@ -1,5 +1,6 @@
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { getViewer } from "@/lib/viewer";
 
-export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  return <WorkspaceShell>{children}</WorkspaceShell>;
+export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
+  return <WorkspaceShell viewer={await getViewer()}>{children}</WorkspaceShell>;
 }

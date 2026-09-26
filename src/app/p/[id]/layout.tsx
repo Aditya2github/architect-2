@@ -1,7 +1,9 @@
 import { ProjectShell } from "@/components/project-shell";
-import { getProject } from "@/lib/demo";
+import { loadProject } from "@/lib/projects";
+import { getViewer } from "@/lib/viewer";
 
 export default async function ProjectLayout({ children, params }: LayoutProps<"/p/[id]">) {
   const { id } = await params;
-  return <ProjectShell project={getProject(id)}>{children}</ProjectShell>;
+  const [project, viewer] = await Promise.all([loadProject(id), getViewer()]);
+  return <ProjectShell project={project} viewer={viewer}>{children}</ProjectShell>;
 }

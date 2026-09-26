@@ -7,6 +7,7 @@ import { ArrowRight, Check, Code2, Sparkles } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { usePrefs, type Lens } from "@/components/providers";
 import { Button } from "@/components/ui";
+import { saveProfile } from "@/app/actions";
 
 const lensOptions: { value: Lens; icon: typeof Sparkles; title: string; body: string; sample: string[] }[] = [
   {
@@ -38,7 +39,10 @@ export default function OnboardingPage() {
   const toggleTool = (t: string) =>
     setPicked((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]));
 
-  const finish = () => router.push("/home");
+  const finish = async () => {
+    await saveProfile({ lens, role, tools: picked }).catch(() => {});
+    router.push("/home");
+  };
 
   return (
     <div className="flex min-h-full flex-col">

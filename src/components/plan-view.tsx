@@ -15,7 +15,8 @@ type Tab = "plan" | "agents" | "mockup" | "schema" | "files";
 export function PlanView({ projectId, idea }: { projectId: string; idea: string | null }) {
   const router = useRouter();
   const { lens } = usePrefs();
-  const isNew = projectId === "new";
+  // A fresh idea starts with scoping questions; an existing project opens with its plan agreed.
+  const isNew = projectId === "new" || idea !== null;
 
   // Existing projects open with the plan already agreed; new ones start with questions.
   const [answers, setAnswers] = useState<(string | null)[]>(
@@ -140,7 +141,7 @@ export function PlanView({ projectId, idea }: { projectId: string; idea: string 
             <Stat icon={Clock} label="Time" value={estimate.buildTime} />
             <Stat icon={Receipt} label="Per claim" value={estimate.perRun} />
             <span className="hidden text-xs text-faint xl:inline">{estimate.monthly}</span>
-            <Button variant="primary" className="ml-auto" onClick={() => router.push(`/p/${isNew ? "claims-triage" : projectId}?build=1`)}>
+            <Button variant="primary" className="ml-auto" onClick={() => router.push(`/p/${projectId === "new" ? "claims-triage" : projectId}?build=1`)}>
               Approve &amp; build <ArrowRight className="size-4" />
             </Button>
           </div>

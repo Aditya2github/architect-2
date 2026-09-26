@@ -8,6 +8,7 @@ import { LogoMark } from "@/components/logo";
 import { LensToggle, ThemeToggle } from "@/components/toggles";
 import { projects, user } from "@/lib/demo";
 import { Kbd } from "@/components/ui";
+import { AccountMenu, type Viewer } from "@/components/account-menu";
 
 const nav = [
   { href: "/home", label: "Home", icon: Home },
@@ -32,15 +33,7 @@ export function CreditMeter() {
   );
 }
 
-export function Avatar() {
-  return (
-    <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent" title={user.email}>
-      {user.name[0]}
-    </span>
-  );
-}
-
-export function WorkspaceShell({ children }: { children: React.ReactNode }) {
+export function WorkspaceShell({ viewer, children }: { viewer: Viewer; children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -48,7 +41,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="flex items-center gap-2 px-4 py-4">
           <LogoMark />
-          <span className="truncate text-sm font-semibold">{user.workspace}</span>
+          <span className="truncate text-sm font-semibold">{viewer ? `${viewer.name.split(" ")[0]}'s workspace` : user.workspace}</span>
         </div>
 
         <div className="px-3">
@@ -99,7 +92,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             <CreditMeter />
             <LensToggle />
             <ThemeToggle />
-            <Avatar />
+            <AccountMenu viewer={viewer} />
           </div>
         </header>
 

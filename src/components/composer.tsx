@@ -5,17 +5,22 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, Bot, Paperclip, Palette, Plug } from "lucide-react";
 import { usePrefs } from "@/components/providers";
 import { starters } from "@/lib/demo";
+import { createProject } from "@/app/actions";
 
 /** The home prompt box. Submitting always goes to the plan step first, never straight to a build. */
 export function Composer() {
   const router = useRouter();
   const { lens } = usePrefs();
   const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const submit = () => {
+  // Signed-in users get the project saved to their account first; demo visitors skip straight to the plan.
+  const submit = async () => {
     const prompt = value.trim();
-    if (!prompt) return;
-    router.push(`/p/new/plan?prompt=${encodeURIComponent(prompt)}`);
+    if (!prompt || saving) return;
+    setSaving(true);
+    const { id } = await createProject(prompt).catch(() => ({ id: "new" }));
+    router.push(`/p/${id}/plan?prompt=${encodeURIComponent(prompt)}`);
   };
 
   return (
@@ -54,11 +59,11 @@ export function Composer() {
           ))}
           <button
             onClick={submit}
-            disabled={!value.trim()}
+            disabled={!value.trim() || saving}
             aria-label="Plan it"
             className="ml-auto flex h-9 items-center gap-2 rounded-lg bg-accent px-3 text-sm font-medium text-accent-ink hover:opacity-90 disabled:opacity-40"
           >
-            Plan it <ArrowUp className="size-4" />
+            {saving ? "Saving…" : "Plan it"} <ArrowUp className="size-4" />
           </button>
         </div>
       </div>

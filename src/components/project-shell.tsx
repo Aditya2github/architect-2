@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { LensToggle, ThemeToggle } from "@/components/toggles";
-import { Avatar, CreditMeter } from "@/components/workspace-shell";
+import { CreditMeter } from "@/components/workspace-shell";
+import { AccountMenu, type Viewer } from "@/components/account-menu";
 import { StatusPill } from "@/components/ui";
 import type { Project } from "@/lib/demo";
 
@@ -23,7 +24,7 @@ const sections = [
   { slug: "/settings", label: "Settings", icon: Settings2 },
 ];
 
-export function ProjectShell({ project, children }: { project: Project; children: React.ReactNode }) {
+export function ProjectShell({ project, viewer, children }: { project: Project; viewer: Viewer; children: React.ReactNode }) {
   const pathname = usePathname();
   const base = `/p/${project.id}`;
 
@@ -52,7 +53,7 @@ export function ProjectShell({ project, children }: { project: Project; children
           <Link href={`${base}/deploy`} className="flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-ink hover:opacity-90">
             <Rocket className="size-4" /> {project.status === "live" ? "Update" : "Go live"}
           </Link>
-          <Avatar />
+          <AccountMenu viewer={viewer} />
         </div>
       </header>
 
