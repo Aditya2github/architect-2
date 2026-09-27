@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=block" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--ink:#10131c;--muted:#5a6376;--line:#d5dbe5;--accent:#3355f0;--accentSoft:#eef1fe;--agent:#b8720a;--agentSoft:#fdf4e4;--good:#16803f;--goodSoft:#e6f5ec;--violet:#7e3ad6;--violetSoft:#f4edfd;--rose:#c0306b;--roseSoft:#fdecf3}
+  html,body{width:2400px;height:1560px;background:#fbfcfd;font-family:"Geist",system-ui,sans-serif;color:var(--ink)}
+  #c{position:relative;width:2400px;height:1560px;background-image:linear-gradient(rgba(51,85,240,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(51,85,240,.045) 1px,transparent 1px);background-size:40px 40px}
+  svg#wires{position:absolute;left:0;top:0;width:2400px;height:1560px;pointer-events:none;z-index:5;overflow:visible}
+  .title{position:absolute;left:60px;top:44px}
+  .title h1{font-size:46px;font-weight:800;letter-spacing:-.02em}
+  .title p{font-size:21px;color:var(--muted);margin-top:6px}
+  .legend{position:absolute;right:60px;top:56px;display:flex;gap:26px;font-size:18px;color:var(--muted);align-items:center}
+  .legend span{display:flex;align-items:center;gap:8px}
+  .sw{width:16px;height:16px;border-radius:4px;display:inline-block}
+  .group{position:absolute;border:2px solid var(--line);border-radius:22px;background:rgba(255,255,255,.88);padding:52px 18px 18px;display:grid;gap:12px;align-content:start}
+  .group > .gl{position:absolute;top:16px;left:20px;font-family:"Geist Mono";font-size:15px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .box{position:relative;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:13px 15px;box-shadow:0 1px 0 rgba(16,19,28,.04)}
+  .box b{display:block;font-size:19px;font-weight:600;line-height:1.25}
+  .box small{display:block;font-size:14.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .live{position:absolute;top:-10px;right:10px;background:var(--good);color:#fff;font-family:"Geist Mono";font-size:11.5px;letter-spacing:.06em;padding:3px 8px;border-radius:99px}
+  .row{display:flex;gap:12px}
+  .row .box{flex:1}
+  .k-client{border-color:#c9d3fb;background:var(--accentSoft)}
+  .k-control{border-color:#c9d3fb}
+  .k-harness{border-color:#efd4a6;background:var(--agentSoft)}
+  .k-sandbox{border-color:#dcc6f5;background:var(--violetSoft)}
+  .k-gateway{border-color:#9fb0f7;background:linear-gradient(90deg,#eef1fe,#f6f0fe)}
+  .k-deploy{border-color:#b9e2c8;background:var(--goodSoft)}
+  .k-eval{border-color:#f3bfd4;background:var(--roseSoft)}
+  .k-ext{border-style:dashed;background:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{border:1.5px solid #c3cdf7;background:#fff;border-radius:99px;padding:8px 16px;font-size:17px;font-weight:500}
+  .wl{font-family:"Geist Mono";font-size:14px;fill:#5a6376}
+  .foot{position:absolute;left:60px;bottom:30px;font-size:17px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="c">
+  <svg id="wires" width="2400" height="1560" viewBox="0 0 2400 1560"><defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#7a86a0"/></marker>
+    <marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3355f0"/></marker>
+  </defs></svg>
+
+  <div class="title"><h1>Architect 2.0 · System architecture</h1><p>Prompt → signed plan → build in a sandbox → prove with evals → promote to production. One model gateway, any framework, customer-owned code.</p></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--good)"></i>Live in the prototype</span>
+    <span><svg width="44" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#3355f0" stroke-width="3"/></svg>Model traffic</span>
+    <span><svg width="44" height="10"><line x1="0" y1="5" x2="40" y2="5" stroke="#7a86a0" stroke-width="2.5"/></svg>Control / data</span>
+  </div>
+
+  <!-- Clients -->
+  <div class="group" id="g-clients" style="left:60px;top:190px;width:330px;height:560px">
+    <span class="gl" style="color:var(--accent)">Clients</span>
+    <div class="box k-client" id="web"><span class="live">LIVE</span><b>Web app</b><small>Next.js · Simple and Pro views of one project, Ctrl+K palette</small></div>
+    <div class="box k-client"><b>CLI</b><small>pull · push · eval · deploy</small></div>
+    <div class="box k-client" id="mcp"><b>MCP server + IDE</b><small>Claude Code, Cursor, Codex drive Architect</small></div>
+    <div class="box k-client"><b>Deployed app users</b><small>ops teams using the generated apps</small></div>
+  </div>
+
+  <!-- Edge -->
+  <div class="group" id="g-edge" style="left:450px;top:190px;width:320px;height:330px">
+    <span class="gl" style="color:var(--muted)">Edge</span>
+    <div class="box" id="auth"><span class="live">LIVE</span><b>Auth &amp; SSO</b><small>Supabase Auth (GitHub, email) · WorkOS SAML/SCIM for enterprise</small></div>
+    <div class="box" id="api"><b>API gateway</b><small>Rate limits, tenant routing, session refresh (proxy.ts)</small></div>
+  </div>
+
+  <!-- Data stores -->
+  <div class="group" id="g-data" style="left:450px;top:580px;width:320px;height:600px">
+    <span class="gl" style="color:var(--muted)">Data</span>
+    <div class="box" id="pg"><span class="live">LIVE</span><b>Postgres</b><small>Projects, plans, event log · row-level security</small></div>
+    <div class="box"><b>Object storage</b><small>Artefacts, snapshots, uploads</small></div>
+    <div class="box"><b>ClickHouse</b><small>Traces, costs, eval results</small></div>
+    <div class="box"><b>Vault / KMS</b><small>Secrets, per-tenant keys</small></div>
+  </div>
+
+  <!-- Control plane -->
+  <div class="group" id="g-control" style="left:830px;top:190px;width:430px;height:720px">
+    <span class="gl" style="color:var(--accent)">Control plane</span>
+    <div class="box k-control" id="plans"><span class="live">LIVE</span><b>Projects &amp; signed plans</b><small>Planner API · structured plan · cost computed, never guessed</small></div>
+    <div class="box k-control" id="events"><b>Checkpoint event log</b><small>Every change is an event → undo any step</small></div>
+    <div class="box k-control" id="credits"><b>Credits &amp; spending caps</b><small>Estimate before run · meter · caps enforced in gateway</small></div>
+    <div class="box k-control" id="deploy"><b>Environments &amp; deploy</b><small>Preview → staging → production · approvals · rollback</small></div>
+    <div class="box k-control" id="ghapp"><b>GitHub App service</b><small>Per-repo scope · branch per task · PRs · Checks · webhooks</small></div>
+  </div>
+
+  <!-- Harness -->
+  <div class="group" id="g-harness" style="left:1320px;top:190px;width:500px;height:330px">
+    <span class="gl" style="color:var(--agent)">Build harness · runs the signed plan</span>
+    <div class="row">
+      <div class="box k-harness" id="planner"><b>Planner</b><small>plan · schema</small></div>
+      <div class="box k-harness" id="coder"><b>Coder</b><small>structured edits</small></div>
+    </div>
+    <div class="row">
+      <div class="box k-harness" id="tester"><b>Tester</b><small>types · units · Playwright</small></div>
+      <div class="box k-harness" id="reviewer"><b>Reviewer</b><small>diff vs plan · security</small></div>
+    </div>
+    <div class="box k-harness" style="padding:10px 15px"><small style="margin:0">Temporal / Inngest · resumable · parallel tasks on branches · self-fix within approved cost</small></div>
+  </div>
+
+  <!-- Sandboxes -->
+  <div class="group" id="g-sandbox" style="left:1320px;top:580px;width:500px;height:330px">
+    <span class="gl" style="color:var(--violet)">Sandboxes</span>
+    <div class="box k-sandbox" id="vm"><b>Firecracker microVM per project</b><small>Warm pool · hibernate when idle · PTY for Pro terminal</small></div>
+    <div class="row">
+      <div class="box k-sandbox"><b>Snapshots</b><small>= checkpoints</small></div>
+      <div class="box k-sandbox" id="egress"><b>Egress proxy</b><small>allow-list · secrets injected</small></div>
+    </div>
+    <div class="box k-sandbox" id="preview"><b>Preview proxy</b><small>*.preview.architect.new</small></div>
+  </div>
+
+  <!-- Deployed apps -->
+  <div class="group" id="g-deploy" style="left:1880px;top:190px;width:460px;height:470px">
+    <span class="gl" style="color:var(--good)">Deployed apps</span>
+    <div class="box k-deploy" id="webapp"><b>Web front end</b><small>Vercel / Cloudflare · custom domains</small></div>
+    <div class="box k-deploy" id="runtime"><b>Agent runtime</b><small>Containers · adapters for Lyzr, LangGraph, CrewAI, OpenAI &amp; Claude Agent SDKs, GitAgent · tools via MCP</small></div>
+    <div class="box k-deploy"><b>DB branch per environment</b><small>Neon · RLS from the plan</small></div>
+    <div class="box k-deploy"><b>Knowledge</b><small>pgvector / Qdrant · DuckDB for tables</small></div>
+  </div>
+
+  <!-- Evals -->
+  <div class="group" id="g-eval" style="left:1880px;top:720px;width:410px;height:300px">
+    <span class="gl" style="color:var(--rose)">Evals &amp; simulation</span>
+    <div class="box k-eval" id="sim"><b>Scenario engine</b><small>Personas and cases from the plan · 1,200 runs per agent</small></div>
+    <div class="row">
+      <div class="box k-eval" id="grade"><b>Graders</b><small>assertions + LLM judges</small></div>
+      <div class="box k-eval" id="gate"><b>Deploy gate</b><small>score ≥ threshold</small></div>
+    </div>
+  </div>
+
+  <!-- Gateway -->
+  <div class="group k-gateway" id="g-gw" style="left:830px;top:1100px;width:1510px;height:200px;border-width:2.5px">
+    <span class="gl" style="color:var(--accent)">Model gateway · “the proxy” · every LLM call</span>
+    <div class="chips" id="gw">
+      <span class="chip">Capability routing (reasoning · fast · vision)</span>
+      <span class="chip">Fallbacks on error or refusal</span>
+      <span class="chip">Budgets &amp; spending caps</span>
+      <span class="chip">Prompt + response caching</span>
+      <span class="chip">PII redaction · region pinning</span>
+      <span class="chip">BYOK · private endpoints</span>
+      <span class="chip">OpenTelemetry traces &amp; cost</span>
+    </div>
+  </div>
+
+  <!-- Providers -->
+  <div class="group k-ext" id="g-models" style="left:830px;top:1360px;width:1510px;height:140px;padding-top:48px">
+    <span class="gl" style="color:var(--muted)">Model providers</span>
+    <div class="chips"><span class="chip">Anthropic Claude</span><span class="chip">OpenAI</span><span class="chip">Google Gemini</span><span class="chip">AWS Bedrock · Vertex · Azure</span><span class="chip">Open-weight models</span></div>
+  </div>
+
+  <!-- External -->
+  <div class="group k-ext" id="g-gh" style="left:830px;top:960px;width:430px;height:110px;padding-top:14px">
+    <div class="box k-ext" id="github" style="border:none;padding:6px 8px"><b>GitHub (external)</b><small>Customer-owned repos · Checks · webhooks</small></div>
+  </div>
+  <div class="group k-ext" id="g-vpc" style="left:60px;top:810px;width:330px;height:240px">
+    <span class="gl" style="color:var(--muted)">Enterprise option</span>
+    <div class="box k-ext"><b>Customer VPC</b><small>Same runtime via Helm + Terraform on AWS / Azure / GCP, gateway on private endpoints</small></div>
+  </div>
+
+  <div class="foot">Architect 2.0 concept · Lyzr AI TPM assignment · green “LIVE” tags mark what the deployed prototype implements today</div>
+</div>
+
+<script>
+const svg = document.getElementById("wires");
+const R = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; };
+function anchor(a, b) {
+  const dx = b.cx - a.cx, dy = b.cy - a.cy;
+  if (Math.abs(dx) * a.h > Math.abs(dy) * a.w) return { x: dx > 0 ? a.x + a.w : a.x, y: a.cy, h: true };
+  return { x: a.cx, y: dy > 0 ? a.y + a.h : a.y, h: false };
+}
+function wire(from, to, label, opts = {}) {
+  const a = R(from), b = R(to);
+  const s = opts.sOverride ?? anchor(a, b), e = opts.eOverride ?? anchor(b, a);
+  let d;
+  if (s.h && e.h) { const mx = (s.x + e.x) / 2; d = `M${s.x} ${s.y} L${mx} ${s.y} L${mx} ${e.y} L${e.x} ${e.y}`; }
+  else if (!s.h && !e.h) { const my = (s.y + e.y) / 2; d = `M${s.x} ${s.y} L${s.x} ${my} L${e.x} ${my} L${e.x} ${e.y}`; }
+  else if (s.h) d = `M${s.x} ${s.y} L${e.x} ${s.y} L${e.x} ${e.y}`;
+  else d = `M${s.x} ${s.y} L${s.x} ${e.y} L${e.x} ${e.y}`;
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", d); p.setAttribute("fill", "none");
+  p.setAttribute("stroke", opts.model ? "#3355f0" : "#7a86a0"); p.setAttribute("stroke-width", opts.model ? 3 : 2.5);
+  if (opts.dash) p.setAttribute("stroke-dasharray", "8 7");
+  p.setAttribute("marker-end", `url(#${opts.model ? "ahA" : "ah"})`);
+  if (opts.both) p.setAttribute("marker-start", `url(#${opts.model ? "ahA" : "ah"})`);
+  svg.appendChild(p);
+  if (label) {
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const lx = opts.lx ?? (s.x + e.x) / 2 + 8, ly = opts.ly ?? (s.y + e.y) / 2 - 8;
+    t.setAttribute("x", lx); t.setAttribute("y", ly); t.setAttribute("class", "wl"); t.textContent = label;
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    svg.appendChild(bg); svg.appendChild(t);
+    const bb = t.getBBox(); bg.setAttribute("x", bb.x - 5); bg.setAttribute("y", bb.y - 3); bg.setAttribute("width", bb.width + 10); bg.setAttribute("height", bb.height + 6); bg.setAttribute("rx", 5); bg.setAttribute("fill", "#fbfcfd");
+  }
+}
+document.fonts.ready.then(() => {
+  wire("g-clients", "g-edge", "");
+  wire("g-edge", "g-control", "");
+  wire("g-control", "g-harness", "", { both: true });
+  wire("g-harness", "g-sandbox", "edit · run · test", { lx: 1580, ly: 555 });
+  wire("g-control", "g-data", "");
+  wire("ghapp", "github", "PRs · Checks", { both: true, dash: true, sOverride: { x: R("ghapp").cx, y: R("ghapp").y + R("ghapp").h, h: false }, eOverride: { x: R("ghapp").cx, y: R("g-gh").y, h: false }, lx: R("ghapp").cx + 10, ly: R("g-gh").y - 16 });
+  wire("g-control", "g-deploy", "promote after the deploy gate passes", { sOverride: { x: R("g-control").x + R("g-control").w - 40, y: R("g-control").y, h: false }, eOverride: { x: R("g-deploy").x + 60, y: R("g-deploy").y, h: false }, lx: 1330, ly: 172 });
+  wire("g-sandbox", "g-eval", "scenarios", { lx: 1826, ly: R("g-eval").cy - 60 });
+  wire("g-sandbox", "g-gw", "build agents", { model: true, sOverride: { x: R("g-sandbox").cx, y: R("g-sandbox").y + R("g-sandbox").h, h: false }, eOverride: { x: R("g-sandbox").cx, y: R("g-gw").y, h: false }, lx: R("g-sandbox").cx + 10, ly: 1010 });
+  wire("g-deploy", "g-gw", "app agents", { model: true, sOverride: { x: 2318, y: R("g-deploy").y + R("g-deploy").h, h: false }, eOverride: { x: 2318, y: R("g-gw").y, h: false }, lx: 2210, ly: 700 });
+  wire("g-eval", "g-gw", "evals", { model: true, sOverride: { x: R("g-eval").cx, y: R("g-eval").y + R("g-eval").h, h: false }, eOverride: { x: R("g-eval").cx, y: R("g-gw").y, h: false }, lx: R("g-eval").cx + 10, ly: 1070 });
+  wire("g-gw", "g-models", "", { model: true });
+  window.READY = true;
+});
+</script>
+</body>
+</html>

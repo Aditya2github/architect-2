@@ -50,6 +50,12 @@ Also in the product: GitHub connect and PRs, Monitor (plain-language issues with
 
 Builds, evals, deploys and GitHub actions are scripted flows that show the intended product behaviour.
 
+## Architecture
+
+How Architect 2.0 would be built for production (sandboxing, the build harness, the model gateway, model and framework agnosticism, GitHub, deployment and scaling) is in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+![Architecture diagram](docs/architecture.png)
+
 ## Stack
 
 Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Auth + Postgres) · Anthropic TypeScript SDK · lucide-react · Vercel
