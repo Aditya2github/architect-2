@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   ArrowUp, Check, Circle, History, Loader2, Monitor, MousePointerClick, RotateCcw, Smartphone, Sparkles, Tablet, Undo2,
@@ -8,7 +8,10 @@ import {
 import { usePrefs } from "@/components/providers";
 import { MockClaimsApp } from "@/components/mock-app";
 import { CodePanel, LogsPanel, TerminalPanel } from "@/components/code-panel";
-import { buildSteps, checkpoints } from "@/lib/blueprint";
+import { buildSteps as claimsSteps, checkpoints, type BuildStep } from "@/lib/blueprint";
+import { PlanApp } from "@/components/plan-app";
+import type { Plan } from "@/lib/plan";
+import { useProjectPlan } from "@/lib/use-plan";
 
 type Msg =
   | { kind: "user"; text: string }
@@ -22,16 +25,44 @@ type Device = "desktop" | "tablet" | "phone";
 
 const deviceWidth: Record<Device, string> = { desktop: "100%", tablet: "768px", phone: "390px" };
 
-const seed: Msg[] = [
-  { kind: "user", text: "Make the Fraud Scout explain every flag with a link to the evidence." },
-  { kind: "assistant", text: "Done. Fraud Scout now returns one line per reason with an evidence link, and I moved it to a stronger model for accuracy. Eval score went from 86 to 91. Saved as a checkpoint." },
-];
+function stepsFor(plan: Plan | null): BuildStep[] {
+  if (!plan || plan.source === "blueprint") return claimsSteps;
+  const names = plan.agents.map((a) => a.name);
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  return [
+    { id: "scaffold", label: "Setting up the project", detail: `App, sign-in and ${plan.data.length} data tables`, files: ["package.json", "src/app/layout.tsx", "db/schema.sql"], seconds: 2 },
+    { id: "agents", label: `Creating ${names.length} agents`, detail: names.join(", "), files: names.map((n) => `agents/${slug(n)}.py`), seconds: 3 },
+    { id: "ui", label: "Building the screens", detail: plan.screens.join(", "), files: plan.screens.slice(0, 3).map((s) => `src/app/${slug(s)}/page.tsx`), seconds: 3 },
+    { id: "wire", label: "Connecting agents to the screens", detail: "Screens update live as agents finish", files: ["src/app/api/runs/route.ts", "src/lib/agents.ts"], seconds: 2 },
+    { id: "test", label: "Testing in a real browser", detail: "Browser checks and 1,200 simulated cases", files: ["tests/app.spec.ts", "evals/agents.yaml"], seconds: 3 },
+    { id: "verify", label: "Verified", detail: "No console errors, all screens load, evals passed", files: [], seconds: 1 },
+  ];
+}
 
-export function BuildView({ autoBuild }: { autoBuild: boolean }) {
+function seedFor(plan: Plan | null): Msg[] {
+  if (!plan || plan.source === "blueprint")
+    return [
+      { kind: "user", text: "Make the Fraud Scout explain every flag with a link to the evidence." },
+      { kind: "assistant", text: "Done. Fraud Scout now returns one line per reason with an evidence link, and I moved it to a stronger model for accuracy. Eval score went from 86 to 91. Saved as a checkpoint." },
+    ];
+  const a = plan.agents[Math.min(1, plan.agents.length - 1)];
+  return [
+    { kind: "user", text: `Make the ${a.name} explain each decision it makes.` },
+    { kind: "assistant", text: `Done. ${a.name} now writes one line per decision with a link to what it used. Evals re-ran and it passed. Saved as a checkpoint.` },
+  ];
+}
+
+export function BuildView({ projectId, projectName, autoBuild }: { projectId: string; projectName: string; autoBuild: boolean }) {
   const { lens } = usePrefs();
-  const [messages, setMessages] = useState<Msg[]>(autoBuild ? [{ kind: "assistant", text: "Plan approved. Building now; you can keep chatting while I work." }, { kind: "timeline" }] : seed);
+  const plan = useProjectPlan(projectId);
+  const buildSteps = useMemo(() => stepsFor(plan), [plan]);
+  const generic = Boolean(plan && plan.source !== "blueprint");
+  const appName = plan && projectId === "new" ? plan.title : projectName;
+  const host = appName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "my-app";
+  const [pane, setPane] = useState<"chat" | "preview">("chat");
+  const [messages, setMessages] = useState<Msg[]>(() => (autoBuild ? [{ kind: "assistant", text: "Plan signed. Building now; you can keep chatting while I work." }, { kind: "timeline" }] : seedFor(plan)));
   const [phase, setPhase] = useState<Phase>(autoBuild ? "building" : "done");
-  const [step, setStep] = useState(autoBuild ? 0 : buildSteps.length);
+  const [step, setStep] = useState(autoBuild ? 0 : 99);
   const [view, setView] = useState<View>("preview");
   const [device, setDevice] = useState<Device>("desktop");
   const [picking, setPicking] = useState(false);
@@ -45,13 +76,14 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
     if (step >= buildSteps.length) {
       const t = setTimeout(() => {
         setPhase("done");
-        setMessages((m) => [...m, { kind: "assistant", text: "Your app is built and verified: 18 browser checks passed, and the agents scored 94/100 on 1,200 simulated claims. Saved as a checkpoint. Try it in the preview." }]);
+        setMessages((m) => [...m, { kind: "assistant", text: generic ? `${appName} is built and verified: 18 browser checks passed, and all ${plan!.agents.length} agents passed their evals on 1,200 simulated cases. Saved as a checkpoint. Try it in the preview.` : "Your app is built and verified: 18 browser checks passed, and the agents scored 94/100 on 1,200 simulated claims. Saved as a checkpoint. Try it in the preview." }]);
+        setPane("preview");
       }, 0);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setStep((s) => s + 1), buildSteps[step].seconds * 700);
     return () => clearTimeout(t);
-  }, [phase, step]);
+  }, [phase, step, buildSteps, generic, appName, plan]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -64,7 +96,7 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
     setMessages((m) => [
       ...m,
       { kind: "user", text: t },
-      { kind: "estimate", id: Date.now(), text: "Here's what I'll change: update the claims table and its API, then re-run the browser checks.", cost: "$0.42" },
+      { kind: "estimate", id: Date.now(), text: `Here's what I'll change: update ${generic ? `the ${plan!.screens[0]} screen` : "the claims table"} and its API, then re-run the browser checks.`, cost: "$0.42" },
     ]);
   };
 
@@ -82,9 +114,18 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
   const activeView = views.some((v) => v.id === view) ? view : "preview";
 
   return (
-    <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1.2fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-1">
+    <div className="flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[360px_minmax(0,1fr)]">
+      {/* Phones show one pane at a time */}
+      <div className="flex shrink-0 gap-1 border-b border-line bg-surface p-2 lg:hidden" role="tablist" aria-label="Workspace">
+        {(["chat", "preview"] as const).map((p) => (
+          <button key={p} role="tab" aria-selected={pane === p} onClick={() => setPane(p)} className={clsx("flex-1 rounded-md py-1.5 text-sm capitalize", pane === p ? "bg-surface-2 text-ink" : "text-muted")}>
+            {p}
+            {p === "preview" && phase === "building" && <Loader2 className="ml-1.5 inline size-3.5 animate-spin text-accent" />}
+          </button>
+        ))}
+      </div>
       {/* Chat */}
-      <section className="flex min-h-0 flex-col border-b border-line bg-surface lg:border-r lg:border-b-0">
+      <section className={clsx("min-h-0 flex-1 flex-col bg-surface lg:flex lg:border-r lg:border-line", pane === "chat" ? "flex" : "hidden")}>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
           {messages.map((m, i) => {
             if (m.kind === "user") return <div key={i} className="ml-8 rounded-lg bg-accent-soft px-3 py-2 text-sm">{m.text}</div>;
@@ -112,7 +153,7 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
                   </div>
                 </div>
               );
-            return <Timeline key={i} step={i === lastTimeline ? step : buildSteps.length} pro={lens === "pro"} />;
+            return <Timeline key={i} steps={buildSteps} step={i === lastTimeline ? step : buildSteps.length} pro={lens === "pro"} />;
           })}
           <div ref={endRef} />
         </div>
@@ -151,7 +192,7 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
       </section>
 
       {/* Canvas */}
-      <section className="flex min-h-0 min-w-0 flex-col">
+      <section className={clsx("min-h-0 min-w-0 flex-1 flex-col lg:flex", pane === "preview" ? "flex" : "hidden")}>
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
           <div className="flex gap-1">
             {views.map((v) => (
@@ -211,10 +252,10 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
               <div className="relative h-fit w-full transition-[max-width] duration-300" style={{ maxWidth: deviceWidth[device] }}>
                 <div className="flex items-center gap-2 rounded-t-md border border-b-0 border-line bg-surface px-3 py-1.5">
                   <span className="flex gap-1">{[0, 1, 2].map((i) => <span key={i} className="size-2 rounded-full bg-line-strong" />)}</span>
-                  <span className="mx-auto font-mono text-[11px] text-faint">claims-triage.preview.architect.new</span>
+                  <span className="mx-auto font-mono text-[11px] text-faint">{host}.preview.architect.new</span>
                 </div>
                 <div className={clsx("rounded-b-md border border-line", phase === "building" && "opacity-40 blur-[1px]")}>
-                  <MockClaimsApp compact={device === "phone"} highlight={picking} />
+                  {generic && plan ? <PlanApp plan={plan} compact={device === "phone"} highlight={picking} /> : <MockClaimsApp compact={device === "phone"} highlight={picking} />}
                 </div>
                 {picking && phase !== "building" && (
                   <div className="absolute left-1/2 top-1/2 z-10 grid w-64 -translate-x-1/2 gap-2 rounded-lg border border-line bg-surface p-3 text-sm shadow-xl">
@@ -245,8 +286,8 @@ export function BuildView({ autoBuild }: { autoBuild: boolean }) {
   );
 }
 
-function Timeline({ step, pro }: { step: number; pro: boolean }) {
-  const done = step >= buildSteps.length;
+function Timeline({ steps, step, pro }: { steps: BuildStep[]; step: number; pro: boolean }) {
+  const done = step >= steps.length;
   return (
     <div className="grid gap-0 rounded-lg border border-line p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -254,7 +295,7 @@ function Timeline({ step, pro }: { step: number; pro: boolean }) {
         {done && <span className="flex items-center gap-1 text-xs text-muted"><Undo2 className="size-3" /> Checkpoint saved</span>}
       </div>
       <ol className="grid gap-2">
-        {buildSteps.map((s, i) => {
+        {steps.map((s, i) => {
           const state = i < step ? "done" : i === step ? "active" : "todo";
           return (
             <li key={s.id} className="flex gap-2.5 text-sm">

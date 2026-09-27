@@ -23,7 +23,7 @@ export function AccountMenu({ viewer }: { viewer: Viewer }) {
   if (!viewer) {
     return (
       <Link href="/login" className="flex h-8 items-center gap-1.5 rounded-md border border-line px-3 text-sm hover:border-line-strong">
-        <LogIn className="size-4" /> Sign in
+        <LogIn className="size-4" /> <span className="hidden sm:inline">Sign in</span>
       </Link>
     );
   }

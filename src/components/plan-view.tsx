@@ -1,148 +1,153 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { ArrowRight, Check, Clock, Coins, FileText, Layers, LayoutPanelTop, Loader2, Receipt, Sparkles, Table2, Workflow } from "lucide-react";
-import { AgentFlow } from "@/components/agent-flow";
-import { MockClaimsApp } from "@/components/mock-app";
+import { ArrowRight, Bot, Check, Clock, Coins, Loader2, Receipt, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { usePrefs } from "@/components/providers";
-import { agents, estimate, fileTree, planSummary, scopingQuestions } from "@/lib/blueprint";
 import { Button } from "@/components/ui";
+import { scopingQuestions, type Autonomy, type Plan, type PlanAnswers } from "@/lib/plan";
+import { savePlan, useProjectPlan } from "@/lib/use-plan";
 
-type Tab = "plan" | "agents" | "mockup" | "schema" | "files";
+const autonomyLabel: Record<Autonomy, { label: string; className: string }> = {
+  suggests: { label: "Suggests only", className: "bg-surface-2 text-muted" },
+  asks: { label: "Asks you first", className: "bg-accent-soft text-accent" },
+  acts: { label: "Acts, then reports", className: "bg-agent-soft text-agent" },
+};
 
 export function PlanView({ projectId, idea }: { projectId: string; idea: string | null }) {
   const router = useRouter();
   const { lens } = usePrefs();
-  // A fresh idea starts with scoping questions; an existing project opens with its plan agreed.
-  const isNew = projectId === "new" || idea !== null;
+  const saved = useProjectPlan(projectId);
+  const [answers, setAnswers] = useState<Partial<PlanAnswers>>({});
+  const [status, setStatus] = useState<"idle" | "drafting" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [change, setChange] = useState("");
 
-  // Existing projects open with the plan already agreed; new ones start with questions.
-  const [answers, setAnswers] = useState<(string | null)[]>(
-    isNew ? scopingQuestions.map(() => null) : scopingQuestions.map((q) => q.answer),
-  );
-  const answered = answers.every(Boolean);
-  const [drafting, setDrafting] = useState(false);
-  const [ready, setReady] = useState(!isNew);
-  const [tab, setTab] = useState<Tab>("plan");
+  // A fresh idea always gets a fresh plan; otherwise show what was already agreed.
+  const [fresh, setFresh] = useState(Boolean(idea));
+  const plan = fresh ? null : saved;
+  const allAnswered = scopingQuestions.every((q) => answers[q.key]);
+  const basePrompt = idea ?? saved?.summary ?? "";
 
-  useEffect(() => {
-    if (!answered || ready) return;
-    const start = setTimeout(() => setDrafting(true), 0);
-    const done = setTimeout(() => {
-      setDrafting(false);
-      setReady(true);
-    }, 1800);
-    return () => {
-      clearTimeout(start);
-      clearTimeout(done);
-    };
-  }, [answered, ready]);
+  const draft = async (extra?: string) => {
+    setStatus("drafting");
+    setError(null);
+    try {
+      const res = await fetch("/api/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: extra ? `${basePrompt}\n\nRequested change: ${extra}` : basePrompt,
+          answers: { users: "My team", autonomy: "Act on low-risk only", intake: "Email or chat", ...answers },
+        }),
+      });
+      const body = (await res.json()) as { plan?: Plan; error?: string };
+      if (!res.ok || !body.plan) throw new Error(body.error ?? "The plan couldn't be drafted.");
+      savePlan(projectId, body.plan);
+      setFresh(false);
+      setStatus("idle");
+    } catch (e) {
+      setStatus("error");
+      setError(e instanceof Error ? e.message : "The plan couldn't be drafted.");
+    }
+  };
 
-  const tabs: { id: Tab; label: string; icon: typeof FileText; pro?: boolean }[] = [
-    { id: "plan", label: "Plan", icon: FileText },
-    { id: "agents", label: "Agents", icon: Workflow },
-    { id: "mockup", label: "Mockup", icon: LayoutPanelTop },
-    { id: "schema", label: "Data & API", icon: Table2, pro: true },
-    { id: "files", label: "File plan", icon: Layers, pro: true },
-  ];
-  const visibleTabs = tabs.filter((t) => !t.pro || lens === "pro");
-  const activeTab = visibleTabs.some((t) => t.id === tab) ? tab : "plan";
+  const answer = (key: keyof PlanAnswers, value: string) => {
+    const next = { ...answers, [key]: value };
+    setAnswers(next);
+  };
 
   return (
-    <div className="grid min-h-full lg:grid-cols-[380px_minmax(0,1fr)]">
+    <div className="grid min-h-full lg:grid-cols-[360px_minmax(0,1fr)]">
       {/* Conversation */}
       <section className="flex flex-col gap-5 border-b border-line bg-surface p-5 lg:border-r lg:border-b-0">
         <div className="grid gap-1">
           <span className="font-mono text-[11px] uppercase tracking-wider text-faint">Your idea</span>
-          <p className="text-sm">{idea ?? "An agent that reads new insurance claims, flags the suspicious ones and routes each to the right adjuster."}</p>
+          <p className="text-sm">{basePrompt || "Describe your idea on the home screen to get a plan."}</p>
         </div>
 
-        <div className="grid gap-4">
-          <div className="flex items-start gap-2 text-sm">
-            <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" />
-            <p>A few quick questions so the plan fits how your team works.</p>
-          </div>
-          {scopingQuestions.map((q, i) => (
-            <div key={q.q} className="grid gap-2">
-              <span className="text-sm font-medium">{q.q}</span>
-              <div className="flex flex-wrap gap-1.5">
-                {q.options.map((o) => (
-                  <button
-                    key={o}
-                    onClick={() => setAnswers((a) => a.map((v, j) => (j === i ? o : v)))}
-                    aria-pressed={answers[i] === o}
-                    className={clsx(
-                      "rounded-full border px-3 py-1 text-xs",
-                      answers[i] === o ? "border-accent bg-accent-soft text-accent" : "border-line hover:border-line-strong",
-                    )}
-                  >
-                    {o}
-                  </button>
-                ))}
-              </div>
+        {fresh && (
+          <div className="grid gap-4">
+            <div className="flex items-start gap-2 text-sm">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" />
+              <p>Three quick questions, then I&apos;ll write the plan for you to sign off.</p>
             </div>
-          ))}
-        </div>
-
-        {(drafting || ready) && (
-          <div className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
-            {drafting ? <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-accent" /> : <Check className="mt-0.5 size-4 shrink-0 text-good" />}
-            <p>{drafting ? "Drafting your plan…" : "Plan ready. Review it on the right, ask for changes below, or approve it."}</p>
+            {scopingQuestions.map((q) => (
+              <div key={q.key} className="grid gap-2">
+                <span className="text-sm font-medium">{q.q}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {q.options.map((o) => (
+                    <button
+                      key={o}
+                      onClick={() => answer(q.key, o)}
+                      aria-pressed={answers[q.key] === o}
+                      className={clsx("rounded-full border px-3 py-1 text-xs", answers[q.key] === o ? "border-accent bg-accent-soft text-accent" : "border-line hover:border-line-strong")}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <Button variant="primary" disabled={!allAnswered || status === "drafting"} onClick={() => draft()}>
+              {status === "drafting" ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+              {status === "drafting" ? "Writing your plan…" : "Write the plan"}
+            </Button>
           </div>
         )}
 
-        <form
-          className="mt-auto flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <label htmlFor="plan-chat" className="sr-only">Ask for a change to the plan</label>
-          <input id="plan-chat" placeholder="Ask for a change, e.g. also handle health claims" className="h-9 flex-1 rounded-md border border-line bg-bg px-3 text-sm outline-none placeholder:text-faint focus:border-accent" />
-          <Button type="submit" size="md">Send</Button>
-        </form>
+        {!fresh && plan && (
+          <form
+            className="grid gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (change.trim()) draft(change.trim().slice(0, 300));
+            }}
+          >
+            <label htmlFor="plan-change" className="text-sm font-medium">Want something different?</label>
+            <textarea
+              id="plan-change"
+              rows={3}
+              value={change}
+              onChange={(e) => setChange(e.target.value)}
+              placeholder="e.g. Nothing goes to customers without my approval"
+              className="resize-none rounded-md border border-line bg-bg px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-accent"
+            />
+            <Button type="submit" disabled={!change.trim() || status === "drafting"}>
+              {status === "drafting" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+              {status === "drafting" ? "Rewriting…" : "Rewrite the plan"}
+            </Button>
+          </form>
+        )}
+
+        {error && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p>}
       </section>
 
-      {/* Plan document */}
+      {/* The contract */}
       <section className="flex min-w-0 flex-col">
-        <div className="flex gap-1 overflow-x-auto border-b border-line px-4 pt-3">
-          {visibleTabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={clsx(
-                "flex shrink-0 items-center gap-1.5 border-b-2 px-3 pb-2.5 text-sm",
-                activeTab === id ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink",
-              )}
-            >
-              <Icon className="size-4" /> {label}
-            </button>
-          ))}
-        </div>
-
         <div className="flex-1 p-5 md:p-8">
-          {!ready ? (
-            <div className="grid gap-3" aria-busy={drafting}>
-              <p className="text-sm text-muted">{drafting ? "Writing the plan, choosing agents and sketching screens…" : "Answer the questions on the left and your plan appears here."}</p>
-              {[80, 60, 90, 45].map((w) => (
-                <div key={w} className={clsx("h-4 rounded bg-surface-2", drafting && "animate-pulse")} style={{ width: `${w}%` }} />
+          {!plan ? (
+            <div className="grid max-w-3xl gap-3" aria-busy={status === "drafting"}>
+              <p className="text-sm text-muted">
+                {status === "drafting" ? "Choosing agents, deciding what each may do on its own, and pricing it…" : "Your plan appears here. Nothing is built until you sign it."}
+              </p>
+              {[80, 55, 90, 40, 70].map((w) => (
+                <div key={w} className={clsx("h-4 rounded bg-surface-2", status === "drafting" && "animate-pulse")} style={{ width: `${w}%` }} />
               ))}
             </div>
           ) : (
-            <PlanTab tab={activeTab} />
+            <Contract plan={plan} pro={lens === "pro"} />
           )}
         </div>
 
-        {ready && (
+        {plan && (
           <div className="sticky bottom-0 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line bg-surface/95 px-5 py-3 backdrop-blur">
-            <Stat icon={Coins} label="Build" value={estimate.buildCost} />
-            <Stat icon={Clock} label="Time" value={estimate.buildTime} />
-            <Stat icon={Receipt} label="Per claim" value={estimate.perRun} />
-            <span className="hidden text-xs text-faint xl:inline">{estimate.monthly}</span>
-            <Button variant="primary" className="ml-auto" onClick={() => router.push(`/p/${projectId === "new" ? "claims-triage" : projectId}?build=1`)}>
-              Approve &amp; build <ArrowRight className="size-4" />
+            <Stat icon={Coins} label="To build" value={`$${plan.estimate.buildCost.toFixed(2)}`} />
+            <Stat icon={Clock} label="Time" value={`~${Math.round(plan.estimate.buildMinutes)} min`} />
+            <Stat icon={Receipt} label="Per run" value={`$${plan.estimate.costPerRun.toFixed(3)}`} />
+            <Button variant="primary" className="ml-auto" onClick={() => router.push(`/p/${projectId}?build=1`)}>
+              Sign &amp; build <ArrowRight className="size-4" />
             </Button>
           </div>
         )}
@@ -161,83 +166,94 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Coins; label: string;
   );
 }
 
-function PlanTab({ tab }: { tab: Tab }) {
-  if (tab === "agents") {
-    return (
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <AgentFlow />
-        <div className="grid content-start gap-3">
-          {agents.map((a) => (
-            <div key={a.id} className="grid gap-1 rounded-lg border border-line bg-surface p-3">
-              <span className="text-sm font-medium">{a.name}</span>
-              <span className="text-sm text-muted">{a.job}</span>
-              <span className="font-mono text-[11px] text-faint">{a.model}{a.knowledge ? ` · reads ${a.knowledge}` : ""}</span>
+function Contract({ plan, pro }: { plan: Plan; pro: boolean }) {
+  const sourceLabel = plan.source === "claude" ? "Written by Claude from your answers" : plan.source === "blueprint" ? "From the Claims Triage blueprint" : "Quick draft from your idea";
+  return (
+    <article className="grid max-w-4xl gap-8">
+      <header className="grid gap-2">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-faint">Build plan · {sourceLabel}</span>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">{plan.title}</h1>
+        <p className="text-muted">{plan.summary}</p>
+      </header>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          ["Who it's for", plan.forWho],
+          ["What's wrong today", plan.problem],
+          ["Done looks like", plan.outcome],
+        ].map(([k, v], i) => (
+          <div key={k} className={clsx("grid content-start gap-1 rounded-lg border p-4", i === 2 ? "border-accent/40 bg-accent-soft" : "border-line bg-surface")}>
+            <span className={clsx("font-mono text-[11px] uppercase tracking-wider", i === 2 ? "text-accent" : "text-faint")}>{k}</span>
+            <span className="text-sm">{v}</span>
+          </div>
+        ))}
+      </div>
+
+      <section className="grid gap-3">
+        <div className="grid gap-1">
+          <h2 className="text-lg font-semibold">The agents, and what each may do on its own</h2>
+          <p className="text-sm text-muted">You decide how much independence each agent gets. Change it any time on the Agents screen.</p>
+        </div>
+        <div className="grid gap-2">
+          {plan.agents.map((a) => (
+            <div key={a.name} className="grid gap-2 rounded-lg border border-line bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <div className="grid gap-1">
+                <span className="flex items-center gap-2 font-medium">
+                  <span className="grid size-6 place-items-center rounded-md bg-agent-soft text-agent"><Bot className="size-3.5" /></span>
+                  {a.name}
+                </span>
+                <span className="text-sm text-muted">{a.job}</span>
+                {(a.tools.length > 0 || pro) && (
+                  <span className="flex flex-wrap gap-1.5 pt-1">
+                    {a.tools.map((t) => <span key={t} className="rounded border border-line px-1.5 py-0.5 text-xs text-muted">{t}</span>)}
+                    {pro && <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-faint">{a.model}</span>}
+                  </span>
+                )}
+              </div>
+              <span className={clsx("justify-self-start rounded-full px-2.5 py-1 text-xs font-medium", autonomyLabel[a.autonomy]?.className ?? "bg-surface-2 text-muted")}>
+                {autonomyLabel[a.autonomy]?.label ?? a.autonomy}
+              </span>
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
-  if (tab === "mockup") {
-    return (
-      <div className="grid gap-3">
-        <p className="text-sm text-muted">A clickable sketch of the main screen. Real data appears once it&apos;s built.</p>
-        <div className="rounded-xl border border-line bg-surface-2 p-3"><MockClaimsApp /></div>
-      </div>
-    );
-  }
-  if (tab === "schema") {
-    return (
-      <div className="grid gap-5 font-mono text-sm">
+      </section>
+
+      <section className="grid gap-3">
+        <h2 className="text-lg font-semibold">What could go wrong, and what stops it</h2>
         <div className="grid gap-2">
-          <span className="text-xs uppercase tracking-wider text-faint">Tables</span>
-          {["claims (id, policy_id, customer, type, amount, risk, coverage, assignee)", "claim_flags (claim_id, rule, evidence_url, agent)", "adjusters (name, team, open_claims)"].map((t) => (
-            <code key={t} className="rounded-md border border-line bg-surface px-3 py-2">{t}</code>
+          {plan.risks.map((r) => (
+            <div key={r.risk} className="grid gap-1 rounded-lg border border-line bg-surface p-4 text-sm md:grid-cols-2 md:gap-6">
+              <span>{r.risk}</span>
+              <span className="flex gap-2 text-muted"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-good" />{r.safeguard}</span>
+            </div>
           ))}
         </div>
-        <div className="grid gap-2">
-          <span className="text-xs uppercase tracking-wider text-faint">API</span>
-          {["POST /api/claims        new claim → runs agent graph", "GET  /api/claims?mine   adjuster queue", "POST /api/claims/:id/route  manual reassign"].map((t) => (
-            <code key={t} className="rounded-md border border-line bg-surface px-3 py-2 whitespace-pre">{t}</code>
-          ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="grid content-start gap-2">
+          <h2 className="text-lg font-semibold">Who can do what</h2>
+          <ul className="grid gap-2 text-sm text-muted">
+            {plan.stories.map((s) => <li key={s} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-good" />{s}</li>)}
+          </ul>
         </div>
-        <p className="font-sans text-sm text-muted">Framework: <span className="text-ink">LangGraph</span> (change on the Agents screen). Row-level security on every table.</p>
-      </div>
-    );
-  }
-  if (tab === "files") {
-    return <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-4 font-mono text-sm leading-6 text-muted">{fileTree.join("\n")}</pre>;
-  }
-  return (
-    <article className="grid max-w-3xl gap-6">
-      <h2 className="text-2xl font-semibold tracking-tight">{planSummary.title}</h2>
-      <dl className="grid gap-4 sm:grid-cols-2">
-        {[
-          ["Who it's for", planSummary.forWho],
-          ["The problem", planSummary.problem],
-        ].map(([k, v]) => (
-          <div key={k} className="grid gap-1 rounded-lg border border-line bg-surface p-4">
-            <dt className="font-mono text-[11px] uppercase tracking-wider text-faint">{k}</dt>
-            <dd className="text-sm">{v}</dd>
+        <div className="grid content-start gap-2">
+          <h2 className="text-lg font-semibold">Screens</h2>
+          <div className="flex flex-wrap gap-2">
+            {plan.screens.map((s) => <span key={s} className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm">{s}</span>)}
           </div>
-        ))}
-      </dl>
-      <div className="grid gap-1 rounded-lg border border-accent/40 bg-accent-soft p-4">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-accent">Done looks like</span>
-        <p className="text-sm">{planSummary.outcome}</p>
-      </div>
-      <div className="grid gap-2">
-        <h3 className="font-semibold">User stories</h3>
-        <ul className="grid gap-2 text-sm text-muted">
-          {planSummary.stories.map((s) => <li key={s} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-good" />{s}</li>)}
-        </ul>
-      </div>
-      <div className="grid gap-2">
-        <h3 className="font-semibold">Screens</h3>
-        <div className="flex flex-wrap gap-2">
-          {planSummary.screens.map((s) => <span key={s} className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm">{s}</span>)}
         </div>
-      </div>
+      </section>
+
+      {pro && (
+        <section className="grid gap-2">
+          <h2 className="text-lg font-semibold">Data</h2>
+          <div className="flex flex-wrap gap-2 font-mono text-sm">
+            {plan.data.map((t) => <code key={t} className="rounded-md border border-line bg-surface px-2.5 py-1">{t}</code>)}
+          </div>
+          <p className="text-sm text-muted">Every table gets row-level security, so each person only sees their own records.</p>
+        </section>
+      )}
     </article>
   );
 }

@@ -12,6 +12,7 @@ import { CreditMeter } from "@/components/workspace-shell";
 import { AccountMenu, type Viewer } from "@/components/account-menu";
 import { StatusPill } from "@/components/ui";
 import type { Project } from "@/lib/demo";
+import { useProjectPlan } from "@/lib/use-plan";
 
 const sections = [
   { slug: "", label: "Build", icon: Hammer },
@@ -27,23 +28,25 @@ const sections = [
 export function ProjectShell({ project, viewer, children }: { project: Project; viewer: Viewer; children: React.ReactNode }) {
   const pathname = usePathname();
   const base = `/p/${project.id}`;
+  const plan = useProjectPlan(project.id);
+  const name = project.id === "new" && plan ? plan.title : project.name;
 
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-3">
+    <div className="flex h-dvh w-full max-w-full flex-col overflow-x-hidden">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 sm:gap-3">
         <Link href="/home" className="flex items-center gap-1 rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-ink" aria-label="Back to home">
           <ChevronLeft className="size-4" />
           <LogoMark size={20} />
         </Link>
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-semibold">{project.name}</span>
-          <StatusPill status={project.status} />
+          <span className="truncate text-sm font-semibold">{name}</span>
+          <span className="hidden sm:inline-flex"><StatusPill status={project.status} /></span>
         </div>
         <button className="hidden h-7 items-center gap-1.5 rounded-md border border-line px-2 font-mono text-xs text-muted hover:border-line-strong lg:flex" title="Environment">
           <span className="size-1.5 rounded-full bg-accent" /> preview <ChevronDown className="size-3" />
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <CreditMeter />
           <LensToggle className="hidden sm:flex" />
           <ThemeToggle />
@@ -51,7 +54,7 @@ export function ProjectShell({ project, viewer, children }: { project: Project; 
             <Share2 className="size-4" /> Share
           </button>
           <Link href={`${base}/deploy`} className="flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-ink hover:opacity-90">
-            <Rocket className="size-4" /> {project.status === "live" ? "Update" : "Go live"}
+            <Rocket className="size-4" /> <span className="hidden sm:inline">{project.status === "live" ? "Update" : "Go live"}</span>
           </Link>
           <AccountMenu viewer={viewer} />
         </div>
