@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { CommandPalette } from "@/components/command-palette";
+import { Tour } from "@/components/tour";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,7 +35,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CommandPalette />
+          <Tour />
+        </Providers>
       </body>
     </html>
   );

@@ -10,7 +10,7 @@ const tone: Record<string, string> = {
   "In progress": "bg-[#e8ecfe] text-[#3355f0]",
 };
 
-export function PlanApp({ plan, compact = false, highlight = false }: { plan: Plan; compact?: boolean; highlight?: boolean }) {
+export function PlanApp({ plan, compact = false, highlight = false, accent = "#1f3a8a", selected, onOpen }: { plan: Plan; compact?: boolean; highlight?: boolean; accent?: string; selected?: string; onOpen?: (id: string) => void }) {
   const initials = plan.title.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const unit = plan.data[0]?.replace(/s$/, "").replace(/_/g, " ") || "item";
   const rows = plan.agents.slice(0, compact ? 3 : 5).map((a, i) => ({
@@ -24,7 +24,7 @@ export function PlanApp({ plan, compact = false, highlight = false }: { plan: Pl
   return (
     <div className="h-full overflow-hidden rounded-md bg-[#f7f8fa] text-[#131722]" style={{ colorScheme: "light" }}>
       <div className="flex items-center gap-3 border-b border-[#e3e6eb] bg-white px-4 py-2.5">
-        <span className="grid size-6 place-items-center rounded bg-[#1f3a8a] text-[11px] font-bold text-white">{initials}</span>
+        <span className="grid size-6 place-items-center rounded text-[11px] font-bold text-white" style={{ background: accent }}>{initials}</span>
         <span className="truncate text-sm font-semibold">{plan.title}</span>
         {!compact && (
           <nav className="ml-4 hidden gap-4 text-xs text-[#5b6272] sm:flex">
@@ -61,7 +61,7 @@ export function PlanApp({ plan, compact = false, highlight = false }: { plan: Pl
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-[#eef0f3]">
+                <tr key={r.id} onClick={() => onOpen?.(r.id)} className={`border-t border-[#eef0f3] ${onOpen ? "cursor-pointer hover:bg-[#f5f7fb]" : ""} ${selected === r.id ? "bg-[#eef2ff]" : ""}`}>
                   <td className="px-3 py-2">
                     <div className="font-medium">{r.what}</div>
                     <div className="font-mono text-[10px] text-[#8a91a0]">{r.id} · {r.when}</div>

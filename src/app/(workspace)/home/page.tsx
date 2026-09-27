@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { Compass, FolderGit2, LayoutTemplate, MessageSquareText } from "lucide-react";
 import { Composer } from "@/components/composer";
+import { StartingPoints } from "@/components/starting-points";
 import { StatusPill } from "@/components/ui";
 import { projects, user, type Project } from "@/lib/demo";
 import { listMyProjects } from "@/lib/projects";
 import { getViewer } from "@/lib/viewer";
 
-const startingPoints = [
-  { icon: MessageSquareText, title: "Describe an idea", body: "Type it above. You'll approve a plan before anything is built.", href: "#new" },
-  { icon: LayoutTemplate, title: "Start from a blueprint", body: "Proven agent apps for claims, sales, support, HR and more.", href: "/blueprints" },
-  { icon: Compass, title: "Help me decide", body: "Answer three questions and get three agents that would save you the most time.", href: "/decide" },
-  { icon: FolderGit2, title: "Import a project", body: "Bring a GitHub repo in any stack and keep building here.", href: "/p/new/import" },
-];
 
 export default async function HomePage() {
   const [viewer, mine] = await Promise.all([getViewer(), listMyProjects()]);
@@ -23,18 +17,10 @@ export default async function HomePage() {
         <Composer />
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {startingPoints.map(({ icon: Icon, title, body, href }) => (
-          <Link key={title} href={href} className="grid content-start gap-2 rounded-lg border border-line bg-surface p-4 hover:border-line-strong">
-            <Icon className="size-5 text-accent" />
-            <span className="font-medium">{title}</span>
-            <span className="text-sm text-muted">{body}</span>
-          </Link>
-        ))}
-      </section>
+      <StartingPoints />
 
       {mine.length > 0 && <ProjectGrid title="Your projects" items={mine} planFirst />}
-      <ProjectGrid title={mine.length > 0 ? "Example projects" : "Your projects"} items={projects} />
+      <ProjectGrid title={mine.length > 0 || viewer ? "Example projects" : "Your projects"} items={projects} />
     </div>
   );
 }

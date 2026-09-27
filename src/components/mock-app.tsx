@@ -10,12 +10,12 @@ const riskStyle: Record<Claim["risk"], string> = {
   high: "bg-[#fde7e7] text-[#b42424]",
 };
 
-export function MockClaimsApp({ compact = false, highlight }: { compact?: boolean; highlight?: boolean }) {
+export function MockClaimsApp({ compact = false, highlight, accent = "#0f5c4d", selected, onOpen }: { compact?: boolean; highlight?: boolean; accent?: string; selected?: string; onOpen?: (id: string) => void }) {
   const rows = compact ? claims.slice(0, 4) : claims;
   return (
     <div className="h-full overflow-hidden rounded-md bg-[#f7f8fa] text-[#131722]" style={{ colorScheme: "light" }}>
       <div className="flex items-center gap-3 border-b border-[#e3e6eb] bg-white px-4 py-2.5">
-        <span className="grid size-6 place-items-center rounded bg-[#0f5c4d] text-[11px] font-bold text-white">CT</span>
+        <span className="grid size-6 place-items-center rounded text-[11px] font-bold text-white" style={{ background: accent }}>CT</span>
         <span className="text-sm font-semibold">Claims Triage</span>
         {!compact && (
           <nav className="ml-4 hidden gap-4 text-xs text-[#5b6272] sm:flex">
@@ -57,7 +57,7 @@ export function MockClaimsApp({ compact = false, highlight }: { compact?: boolea
             </thead>
             <tbody>
               {rows.map((c) => (
-                <tr key={c.id} className="border-t border-[#eef0f3]">
+                <tr key={c.id} onClick={() => onOpen?.(c.id)} className={clsx("border-t border-[#eef0f3]", onOpen && "cursor-pointer hover:bg-[#f5f7fb]", selected === c.id && "bg-[#eef2ff]")}>
                   <td className="px-3 py-2">
                     <div className="font-medium">{c.customer}</div>
                     <div className="font-mono text-[10px] text-[#8a91a0]">{c.id} · {c.received}</div>

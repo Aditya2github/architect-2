@@ -9,6 +9,7 @@ import { LensToggle, ThemeToggle } from "@/components/toggles";
 import { projects, user } from "@/lib/demo";
 import { Kbd } from "@/components/ui";
 import { AccountMenu, type Viewer } from "@/components/account-menu";
+import { openPalette } from "@/components/command-palette";
 
 const nav = [
   { href: "/home", label: "Home", icon: Home },
@@ -83,7 +84,7 @@ export function WorkspaceShell({ viewer, children }: { viewer: Viewer; children:
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-bg/85 px-4 backdrop-blur md:px-6">
           <span className="md:hidden"><LogoMark /></span>
-          <button className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-sm text-faint hover:border-line-strong">
+          <button onClick={openPalette} className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-sm text-faint hover:border-line-strong">
             <Search className="size-4" />
             <span className="flex-1 text-left">Search or jump to…</span>
             <Kbd>Ctrl K</Kbd>

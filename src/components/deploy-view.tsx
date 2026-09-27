@@ -91,6 +91,13 @@ export function DeployView() {
                 </select>
               </label>
             </div>
+            <label className="flex items-start justify-between gap-4 rounded-lg border border-line p-3 text-sm">
+              <span className="grid gap-0.5">
+                <span className="font-medium">Publish as a blueprint</span>
+                <span className="text-muted">Other teams can start from your app. They get the agents, evals and sample data, never your data or keys.</span>
+              </span>
+              <input id="publish-blueprint" type="checkbox" className="mt-1 size-4 accent-[var(--accent)]" />
+            </label>
           </div>
         ) : (
           <>

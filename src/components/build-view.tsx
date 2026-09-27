@@ -10,14 +10,21 @@ import { MockClaimsApp } from "@/components/mock-app";
 import { CodePanel, LogsPanel, TerminalPanel } from "@/components/code-panel";
 import { buildSteps as claimsSteps, checkpoints, type BuildStep } from "@/lib/blueprint";
 import { PlanApp } from "@/components/plan-app";
-import type { Plan } from "@/lib/plan";
+import { claimsPlan, type Plan } from "@/lib/plan";
+import { Dialog } from "@/components/dialog";
+import { FileText } from "lucide-react";
 import { useProjectPlan } from "@/lib/use-plan";
+import { useAppTheme } from "@/lib/app-theme";
+import { RunDetail } from "@/components/run-detail";
+import { buildReport } from "@/lib/agent-report";
+import { FlaskConical, ShieldCheck, Wallet } from "lucide-react";
 
 type Msg =
   | { kind: "user"; text: string }
   | { kind: "assistant"; text: string }
   | { kind: "estimate"; text: string; cost: string; id: number; used?: boolean }
-  | { kind: "timeline" };
+  | { kind: "timeline" }
+  | { kind: "artifact"; title: string };
 
 type Phase = "idle" | "building" | "done";
 type View = "preview" | "code" | "terminal" | "logs";
@@ -60,6 +67,9 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
   const appName = plan && projectId === "new" ? plan.title : projectName;
   const host = appName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "my-app";
   const [pane, setPane] = useState<"chat" | "preview">("chat");
+  const appTheme = useAppTheme();
+  const [openRun, setOpenRun] = useState<string | null>(null);
+  const evalScore = buildReport(plan).overall;
   const [messages, setMessages] = useState<Msg[]>(() => (autoBuild ? [{ kind: "assistant", text: "Plan signed. Building now; you can keep chatting while I work." }, { kind: "timeline" }] : seedFor(plan)));
   const [phase, setPhase] = useState<Phase>(autoBuild ? "building" : "done");
   const [step, setStep] = useState(autoBuild ? 0 : 99);
@@ -100,6 +110,19 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
     ]);
   };
 
+  const effectivePlan = plan ?? claimsPlan;
+  const [doc, setDoc] = useState(false);
+
+  // Questions and documents are free; only changes to the app cost credits.
+  const quick = (kind: "doc" | "risks" | "explain") => {
+    if (kind === "doc")
+      setMessages((m) => [...m, { kind: "user", text: "Write a one-pager I can send my manager." }, { kind: "artifact", title: `${effectivePlan.title}: one-pager` }]);
+    if (kind === "risks")
+      setMessages((m) => [...m, { kind: "user", text: "What could break?" }, { kind: "assistant", text: effectivePlan.risks.map((r, i) => `${i + 1}. ${r.risk}. Guard: ${r.safeguard}.`).join(" ") }]);
+    if (kind === "explain")
+      setMessages((m) => [...m, { kind: "user", text: "Explain this app like I'm new here." }, { kind: "assistant", text: `${effectivePlan.summary} ${effectivePlan.agents.length} agents share the work: ${effectivePlan.agents.map((a) => `${a.name} (${a.job.charAt(0).toLowerCase() + a.job.slice(1, 80).replace(/\.$/, "")})`).join("; ")}.` }]);
+  };
+
   const startBuild = (id: number) => {
     setMessages((m) => [...m.map((x) => (x.kind === "estimate" && x.id === id ? { ...x, used: true } : x)), { kind: "timeline" }]);
     setStep(0);
@@ -124,6 +147,32 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
           </button>
         ))}
       </div>
+      <Dialog open={doc} onClose={() => setDoc(false)} title={`${effectivePlan.title}: one-pager`} description="Generated from the signed plan. Copy it into an email or doc." size="lg">
+        <article id="one-pager" className="grid gap-4 text-sm">
+          <p className="text-base">{effectivePlan.summary}</p>
+          <div className="grid gap-1"><b>The problem</b><p className="text-muted">{effectivePlan.problem}</p></div>
+          <div className="grid gap-1"><b>What changes</b><p className="text-muted">{effectivePlan.outcome}</p></div>
+          <div className="grid gap-1"><b>How it works</b>
+            <ul className="grid gap-1 pl-4 text-muted">{effectivePlan.agents.map((a) => <li key={a.name} className="list-disc"><span className="text-ink">{a.name}</span>: {a.job}</li>)}</ul>
+          </div>
+          <div className="grid gap-1"><b>Risks and how we control them</b>
+            <ul className="grid gap-1 pl-4 text-muted">{effectivePlan.risks.map((r) => <li key={r.risk} className="list-disc">{r.risk}. {r.safeguard}.</li>)}</ul>
+          </div>
+          <div className="grid gap-1"><b>Cost</b><p className="text-muted">About ${effectivePlan.estimate.costPerRun.toFixed(3)} per run to operate, ${effectivePlan.estimate.buildCost.toFixed(2)} to build, capped by a monthly spending limit.</p></div>
+        </article>
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              const text = document.getElementById("one-pager")?.innerText ?? "";
+              navigator.clipboard?.writeText(text).catch(() => {});
+              setDoc(false);
+            }}
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink"
+          >
+            Copy text
+          </button>
+        </div>
+      </Dialog>
       {/* Chat */}
       <section className={clsx("min-h-0 flex-1 flex-col bg-surface lg:flex lg:border-r lg:border-line", pane === "chat" ? "flex" : "hidden")}>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
@@ -153,17 +202,29 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
                   </div>
                 </div>
               );
+            if (m.kind === "artifact")
+              return (
+                <button key={i} onClick={() => setDoc(true)} className="flex w-full items-center gap-3 rounded-lg border border-line p-3 text-left text-sm hover:border-accent">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-soft text-accent"><FileText className="size-4" /></span>
+                  <span className="grid"><span className="font-medium">{m.title}</span><span className="text-xs text-muted">Document · free · click to open</span></span>
+                </button>
+              );
             return <Timeline key={i} steps={buildSteps} step={i === lastTimeline ? step : buildSteps.length} pro={lens === "pro"} />;
           })}
           <div ref={endRef} />
         </div>
 
+        <div className="flex gap-1.5 overflow-x-auto border-t border-line px-3 pt-3" aria-label="Quick asks">
+          {([["doc", "One-pager for my manager"], ["risks", "What could break?"], ["explain", "Explain this app"]] as const).map(([k, label]) => (
+            <button key={k} type="button" onClick={() => quick(k)} className="shrink-0 rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:border-accent hover:text-ink">{label}</button>
+          ))}
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             send(draft);
           }}
-          className="border-t border-line p-3"
+          className="p-3 pt-2"
         >
           <div className="rounded-lg border border-line bg-bg focus-within:border-accent">
             <label htmlFor="build-chat" className="sr-only">Describe a change</label>
@@ -182,7 +243,7 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
               className="w-full resize-none bg-transparent px-3 pt-2.5 text-sm outline-none placeholder:text-faint"
             />
             <div className="flex items-center gap-2 px-2 pb-2">
-              <span className="text-xs text-faint">You approve the cost before anything runs</span>
+              <span className="text-xs text-faint">Questions are free. Changes show their cost first.</span>
               <button type="submit" disabled={!draft.trim()} aria-label="Send" className="ml-auto grid size-7 place-items-center rounded-md bg-accent text-accent-ink disabled:opacity-40">
                 <ArrowUp className="size-4" />
               </button>
@@ -246,7 +307,20 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
           </div>
         </div>
 
+        {activeView === "preview" && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-3 py-1.5 text-xs text-muted" aria-label="App health">
+            <span className="flex items-center gap-1.5">
+              <span className={clsx("size-1.5 rounded-full", phase === "building" ? "animate-pulse bg-accent" : "bg-good")} />
+              {phase === "building" ? "Building…" : "Preview up to date"}
+            </span>
+            <span className="flex items-center gap-1"><ShieldCheck className="size-3.5 text-good" /> 18/18 checks</span>
+            <span className="flex items-center gap-1"><FlaskConical className="size-3.5 text-good" /> Evals {evalScore}/100</span>
+            <span className="flex items-center gap-1"><Wallet className="size-3.5" /> $0.42 today</span>
+            <span className="hidden text-faint sm:inline">Click any row to see what the agents did</span>
+          </div>
+        )}
         <div className="relative min-h-0 flex-1 overflow-auto bg-surface-2">
+          {activeView === "preview" && openRun && phase !== "building" && <RunDetail plan={plan} id={openRun} onClose={() => setOpenRun(null)} />}
           {activeView === "preview" && (
             <div className="flex h-full justify-center p-4">
               <div className="relative h-fit w-full transition-[max-width] duration-300" style={{ maxWidth: deviceWidth[device] }}>
@@ -255,12 +329,12 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
                   <span className="mx-auto font-mono text-[11px] text-faint">{host}.preview.architect.new</span>
                 </div>
                 <div className={clsx("rounded-b-md border border-line", phase === "building" && "opacity-40 blur-[1px]")}>
-                  {generic && plan ? <PlanApp plan={plan} compact={device === "phone"} highlight={picking} /> : <MockClaimsApp compact={device === "phone"} highlight={picking} />}
+                  {generic && plan ? <PlanApp plan={plan} compact={device === "phone"} highlight={picking} accent={appTheme.accent} selected={openRun ?? undefined} onOpen={setOpenRun} /> : <MockClaimsApp compact={device === "phone"} highlight={picking} accent={appTheme.id === "harbor" ? "#0f5c4d" : appTheme.accent} selected={openRun ?? undefined} onOpen={setOpenRun} />}
                 </div>
                 {picking && phase !== "building" && (
                   <div className="absolute left-1/2 top-1/2 z-10 grid w-64 -translate-x-1/2 gap-2 rounded-lg border border-line bg-surface p-3 text-sm shadow-xl">
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-faint">Selected · Claims table</span>
-                    {["Sort by risk, highest first", "Add a 'Days open' column", "Make rows more compact"].map((o) => (
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-faint">Selected · {generic ? "Main table" : "Claims table"}</span>
+                    {(generic ? ["Show newest first", "Add a 'Waiting on' column", "Make rows more compact"] : ["Sort by risk, highest first", "Add a 'Days open' column", "Make rows more compact"]).map((o) => (
                       <button key={o} onClick={() => { setPicking(false); send(o); }} className="rounded-md border border-line px-2.5 py-1.5 text-left text-xs hover:border-accent">
                         {o}
                       </button>

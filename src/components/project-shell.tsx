@@ -13,6 +13,14 @@ import { AccountMenu, type Viewer } from "@/components/account-menu";
 import { StatusPill } from "@/components/ui";
 import type { Project } from "@/lib/demo";
 import { useProjectPlan } from "@/lib/use-plan";
+import { useState } from "react";
+import { ShareDialog } from "@/components/share-dialog";
+
+const envs = [
+  { id: "preview", dot: "bg-accent", note: "Safe to experiment. Uses sample data." },
+  { id: "staging", dot: "bg-warn", note: "Last tested version, real integrations in test mode." },
+  { id: "production", dot: "bg-good", note: "What your users see. Changes need approval." },
+] as const;
 
 const sections = [
   { slug: "", label: "Build", icon: Hammer },
@@ -30,6 +38,10 @@ export function ProjectShell({ project, viewer, children }: { project: Project; 
   const base = `/p/${project.id}`;
   const plan = useProjectPlan(project.id);
   const name = project.id === "new" && plan ? plan.title : project.name;
+  const [env, setEnv] = useState<(typeof envs)[number]["id"]>("preview");
+  const [envOpen, setEnvOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const envInfo = envs.find((e) => e.id === env)!;
 
   return (
     <div className="flex h-dvh w-full max-w-full flex-col overflow-x-hidden">
@@ -42,15 +54,27 @@ export function ProjectShell({ project, viewer, children }: { project: Project; 
           <span className="truncate text-sm font-semibold">{name}</span>
           <span className="hidden sm:inline-flex"><StatusPill status={project.status} /></span>
         </div>
-        <button className="hidden h-7 items-center gap-1.5 rounded-md border border-line px-2 font-mono text-xs text-muted hover:border-line-strong lg:flex" title="Environment">
-          <span className="size-1.5 rounded-full bg-accent" /> preview <ChevronDown className="size-3" />
-        </button>
+        <div className="relative hidden lg:block">
+          <button onClick={() => setEnvOpen((o) => !o)} aria-expanded={envOpen} className="flex h-7 items-center gap-1.5 rounded-md border border-line px-2 font-mono text-xs text-muted hover:border-line-strong" title="Environment">
+            <span className={clsx("size-1.5 rounded-full", envInfo.dot)} /> {env} <ChevronDown className="size-3" />
+          </button>
+          {envOpen && (
+            <div className="absolute left-0 top-9 z-40 grid w-72 gap-1 rounded-lg border border-line bg-surface p-1.5 shadow-xl">
+              {envs.map((e) => (
+                <button key={e.id} onClick={() => { setEnv(e.id); setEnvOpen(false); }} className={clsx("grid gap-0.5 rounded-md px-2.5 py-2 text-left", env === e.id ? "bg-surface-2" : "hover:bg-surface-2")}>
+                  <span className="flex items-center gap-2 font-mono text-xs"><span className={clsx("size-1.5 rounded-full", e.dot)} />{e.id}</span>
+                  <span className="text-xs text-muted">{e.note}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <CreditMeter />
           <LensToggle className="hidden sm:flex" />
           <ThemeToggle />
-          <button className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-sm text-muted hover:bg-surface-2 hover:text-ink sm:flex">
+          <button onClick={() => setShareOpen(true)} className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-sm text-muted hover:bg-surface-2 hover:text-ink sm:flex">
             <Share2 className="size-4" /> Share
           </button>
           <Link href={`${base}/deploy`} className="flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-sm font-medium text-accent-ink hover:opacity-90">
@@ -59,6 +83,12 @@ export function ProjectShell({ project, viewer, children }: { project: Project; 
           <AccountMenu viewer={viewer} />
         </div>
       </header>
+      {env === "production" && (
+        <div className="shrink-0 border-b border-good/30 bg-good-soft px-4 py-1.5 text-center text-xs text-good">
+          You are looking at production. Agents act on real data here, and every change goes through approval.
+        </div>
+      )}
+      <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} projectName={name} projectId={project.id} />
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <nav aria-label="Project" className="flex shrink-0 gap-1 overflow-x-auto border-b border-line bg-surface p-2 md:w-[76px] md:flex-col md:border-r md:border-b-0">
