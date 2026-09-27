@@ -9,7 +9,7 @@ const diff = [
   { t: " ", l: "fraud_scout = Agent(" },
   { t: " ", l: '    name="Fraud Scout",' },
   { t: "-", l: '    model="claude-sonnet-5",' },
-  { t: "+", l: '    model="claude-opus-5-5",' },
+  { t: "+", l: '    model="claude-opus-5",' },
   { t: " ", l: "    tools=[similar_claims, web_search]," },
   { t: " ", l: '    instructions="""' },
   { t: "-", l: "    Flag suspicious claims." },

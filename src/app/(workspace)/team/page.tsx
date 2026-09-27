@@ -16,7 +16,7 @@ const roles = [
 
 const audit = [
   ["Priya Nair", "approved production deploy c5", "Yesterday 18:02"],
-  ["Aditya", "changed Fraud Scout model to Claude Opus 5.5", "Yesterday 17:40"],
+  ["Aditya", "changed Fraud Scout model to Claude Opus 5", "Yesterday 17:40"],
   ["Rohan Iyer", "added secret OCR_API_KEY (production)", "Mon 10:15"],
 ];
 

@@ -30,7 +30,7 @@ export const agents: Agent[] = [
     id: "fraud",
     name: "Fraud Scout",
     job: "Checks the claim against past claims and 42 fraud rules, and explains every flag it raises.",
-    model: "Claude Opus 5.5",
+    model: "Claude Opus 5",
     tools: ["Claims database", "Web search"],
     knowledge: "Fraud rules playbook.pdf",
     evalScore: 91,
@@ -136,7 +136,7 @@ def similar_claims(policy_id: str, days: int = 365):
 
 fraud_scout = Agent(
     name="Fraud Scout",
-    model="claude-opus-5-5",
+    model="claude-opus-5",
     tools=[similar_claims, web_search],
     knowledge=[rules],
     instructions="""
