@@ -39,12 +39,12 @@ async function providerEnabled(provider: "github" | "google") {
 
 const btn = "inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-surface text-[15px] font-medium hover:border-line-strong hover:bg-surface-2 disabled:opacity-60";
 
-export function SignInPanel({ failed }: { failed: boolean }) {
+export function SignInPanel({ failure }: { failure: string | null }) {
   const supabase = getBrowserSupabase();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(failed ? "That sign-in didn't complete. Please try again." : null);
+  const [error, setError] = useState<string | null>(failure ? `Sign-in didn't complete: ${failure}` : null);
 
   const callback = () => `${window.location.origin}/auth/callback`;
 

@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <h1 className="text-2xl font-semibold tracking-tight">Sign in to Architect</h1>
             <p className="text-sm text-muted">New here? The same buttons create your account.</p>
           </div>
-          <SignInPanel failed={Boolean(error)} />
+          <SignInPanel failure={typeof error === "string" ? error : null} />
           <p className="text-xs leading-relaxed text-faint">
             Enterprise workspace? Sign in with SSO from your company&apos;s identity provider. Your prompts and data are never used to train models.
           </p>
