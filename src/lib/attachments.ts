@@ -57,12 +57,13 @@ export function ideasFromColumns(name: string, columns: string[]): string[] {
   const cols = columns.map((c) => c.toLowerCase());
   const has = (...keys: string[]) => cols.some((c) => keys.some((k) => c.includes(k)));
   const thing = name.replace(/\.(csv|tsv|xlsx?)$/i, "").replace(/[_-]+/g, " ").trim() || "record";
+  const one = thing.replace(/s$/i, "");
   const ideas: string[] = [];
   if (has("amount", "total", "price", "value", "cost")) ideas.push(`Flag ${thing} with unusual amounts and explain why each one stands out`);
-  if (has("email", "contact", "phone")) ideas.push(`Draft a personal follow-up for each ${thing} contact and queue it for my approval`);
-  if (has("status", "stage", "state")) ideas.push(`Route each ${thing} to the right owner based on its status, and chase anything stuck`);
+  if (has("email", "contact", "phone")) ideas.push(`Draft a personal follow-up for each ${one} contact and queue it for my approval`);
+  if (has("status", "stage", "state")) ideas.push(`Route each ${one} to the right owner based on its status, and chase anything stuck`);
   if (has("date", "created", "time", "due")) ideas.push(`Send a weekly summary of new and overdue ${thing} to Slack`);
-  if (has("description", "notes", "comment", "text", "body")) ideas.push(`Read the notes on each ${thing}, tag the topic and sentiment, and surface urgent ones`);
+  if (has("description", "notes", "comment", "text", "body")) ideas.push(`Read the notes on each ${one}, tag the topic and sentiment, and surface urgent ones`);
   if (ideas.length === 0) ideas.push(`Answer questions about ${thing} in plain English, with charts`, `Spot duplicates and missing fields in ${thing} and suggest fixes`);
   return ideas.slice(0, 3);
 }

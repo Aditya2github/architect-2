@@ -67,7 +67,7 @@ export const projects: Project[] = [
 ];
 
 export function getProject(id: string): Project {
-  return projects.find((p) => p.id === id) ?? { ...projects[0], id, name: "Untitled project" };
+  return projects.find((p) => p.id === id) ?? { ...projects[0], id, name: "Untitled project", status: "draft", url: undefined, evalScore: undefined, updated: "just now" };
 }
 
 export const starters = [

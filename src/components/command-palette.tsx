@@ -60,7 +60,8 @@ export function CommandPalette() {
   }, [router, lens, setLens, theme, setTheme, current]);
 
   const q = query.trim().toLowerCase();
-  const filtered = q ? items.filter((i) => i.label.toLowerCase().includes(q) || i.group.toLowerCase().includes(q)) : items;
+  const rank = (i: Item) => (i.label.toLowerCase().startsWith(q) ? 0 : i.label.toLowerCase().includes(q) ? 1 : 2);
+  const filtered = q ? items.filter((i) => rank(i) < 2 || i.group.toLowerCase().includes(q)).sort((a, b) => rank(a) - rank(b)) : items;
   const active = Math.min(index, Math.max(filtered.length - 1, 0));
 
   const choose = (item: Item | undefined) => {
@@ -71,7 +72,6 @@ export function CommandPalette() {
   };
 
   if (!open) return null;
-  let lastGroup = "";
   return (
     <div className="fixed inset-0 z-[60] grid place-items-start justify-items-center bg-black/40 px-4 pt-[12vh]" onMouseDown={() => setOpen(false)}>
       <div role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={(e) => e.stopPropagation()} className="w-full max-w-xl overflow-hidden rounded-xl border border-line bg-surface shadow-2xl">
@@ -98,8 +98,7 @@ export function CommandPalette() {
         <div className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
           {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
           {filtered.map((item, i) => {
-            const header = item.group !== lastGroup ? item.group : null;
-            lastGroup = item.group;
+            const header = i === 0 || filtered[i - 1].group !== item.group ? item.group : null;
             return (
               <div key={item.id}>
                 {header && <p className="px-3 pt-2 pb-1 font-mono text-[11px] uppercase tracking-wider text-faint">{header}</p>}

@@ -214,7 +214,7 @@ export function BuildView({ projectId, projectName, autoBuild }: { projectId: st
           <div ref={endRef} />
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto border-t border-line px-3 pt-3" aria-label="Quick asks">
+        <div className="flex flex-wrap gap-1.5 border-t border-line px-3 pt-3" aria-label="Quick asks">
           {([["doc", "One-pager for my manager"], ["risks", "What could break?"], ["explain", "Explain this app"]] as const).map(([k, label]) => (
             <button key={k} type="button" onClick={() => quick(k)} className="shrink-0 rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:border-accent hover:text-ink">{label}</button>
           ))}

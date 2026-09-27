@@ -110,7 +110,7 @@ export function templatePlan(prompt: string, answers: PlanAnswers): Plan {
 
   return {
     title: `${noun[0].toUpperCase() + noun.slice(1)} ${suffix}`,
-    summary: prompt.trim().slice(0, 200),
+    summary: prompt.split(/\n\s*\n/)[0].trim().slice(0, 200),
     forWho: `Built for ${who}. Work comes in through ${answers.intake.toLowerCase()}.`,
     problem: `Every ${noun} is handled by hand today, so it is slow, inconsistent, and easy to miss.`,
     outcome: `Each new ${noun} is read, checked and routed within minutes, with the reasoning written down. People only step in where it matters.`,
