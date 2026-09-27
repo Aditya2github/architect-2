@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone tooling (video render script), not part of the app.
+    "docs/**",
   ]),
 ]);
 
