@@ -63,7 +63,7 @@ export function titleFromPrompt(prompt: string) {
 
 // ---------- Template planner (used when no API key is configured) ----------
 
-const nouns = ["claim", "ticket", "invoice", "lead", "resume", "contract", "order", "application", "email", "report", "appointment", "document", "review", "request"];
+const nouns = ["claim", "competitor", "candidate", "ticket", "invoice", "lead", "resume", "contract", "order", "application", "email", "report", "appointment", "document", "review", "request"];
 
 function mainNoun(text: string) {
   return nouns.find((n) => text.includes(n)) ?? "request";
@@ -106,7 +106,7 @@ export function templatePlan(prompt: string, answers: PlanAnswers): Plan {
   const who = answers.users === "Just me" ? "you" : answers.users === "Our customers" ? "your customers" : "your team";
 
   const has = (n: string) => agents.some((x) => x.name === n);
-  const suffix = has("Writer") ? "Reply Desk" : has("Analyst") ? "Review Desk" : has("Researcher") ? "Research Desk" : "Copilot";
+  const suffix = has("Researcher") ? "Research Desk" : has("Analyst") ? "Review Desk" : has("Writer") ? "Reply Desk" : "Copilot";
 
   return {
     title: `${noun[0].toUpperCase() + noun.slice(1)} ${suffix}`,
