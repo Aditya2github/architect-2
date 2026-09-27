@@ -1,0 +1,379 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=block" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07090e; --surface:#10131a; --surface2:#161a23; --line:#232a38; --ink:#eef1f6; --muted:#8d96a9; --faint:#5f687b;
+    --accent:#7088ff; --accentSoft:#1a2144; --agent:#f0b44c; --agentSoft:#2e2413; --good:#4cc47e; --goodSoft:#12291c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg)}
+  body{font-family:"Geist",system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+  #stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:
+    radial-gradient(1200px 700px at 78% 40%, rgba(112,136,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 10% 90%, rgba(240,180,76,.06), transparent 60%), var(--bg)}
+  #grid{position:absolute;inset:-40px;background-image:linear-gradient(rgba(112,136,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(112,136,255,.07) 1px,transparent 1px);background-size:48px 48px}
+  .mono{font-family:"Geist Mono",ui-monospace,monospace}
+
+  /* top step tracker */
+  #tracker{position:absolute;top:64px;left:120px;display:flex;gap:28px;align-items:center}
+  #brand{display:flex;align-items:center;gap:12px;font-weight:600;font-size:22px;margin-right:40px}
+  .mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+  .mark svg{width:20px;height:20px}
+  .step{display:flex;align-items:center;gap:10px;font-size:18px;color:var(--faint);font-weight:500}
+  .step b{font-family:"Geist Mono";font-weight:500;font-size:14px;border:1.5px solid currentColor;border-radius:6px;padding:2px 7px}
+  .step.on{color:var(--ink)} .step.on b{color:var(--accent);border-color:var(--accent)}
+  .step.done{color:var(--muted)} .step.done b{color:var(--good);border-color:var(--good)}
+  #bar{position:absolute;top:0;left:0;height:6px;background:linear-gradient(90deg,var(--accent),#a9b8ff);}
+
+  .scene{position:absolute;inset:0;opacity:0}
+  .headline{position:absolute;left:120px;top:360px;width:760px}
+  .eyebrow{font-family:"Geist Mono";font-size:22px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;margin-bottom:26px;display:block}
+  .words{font-size:132px;line-height:1.0;font-weight:800;letter-spacing:-.035em}
+  .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:14px;margin-right:30px}
+  .w span{display:inline-block}
+  .sub{margin-top:26px;font-size:30px;color:var(--muted);line-height:1.35;max-width:680px}
+  .visual{position:absolute;left:980px;top:230px;width:820px}
+  .card{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:34px;box-shadow:0 40px 120px rgba(0,0,0,.55)}
+
+  /* scene 1 */
+  .prompt{font-size:34px;line-height:1.4;min-height:150px}
+  .caret{display:inline-block;width:3px;height:40px;background:var(--accent);vertical-align:-6px;margin-left:3px}
+  .chip{display:inline-flex;align-items:center;gap:12px;margin-top:26px;border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 18px;font-size:22px}
+  .chip i{width:14px;height:14px;border-radius:3px;background:var(--good);display:inline-block}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-top:30px;color:var(--muted);font-size:20px}
+  .btn{background:var(--accent);color:#0a0c11;font-weight:700;border-radius:12px;padding:14px 26px;font-size:22px}
+
+  /* scene 2 */
+  .ptitle{font-size:40px;font-weight:700;margin-bottom:6px}
+  .psub{font-size:20px;color:var(--muted);margin-bottom:26px}
+  .agent{display:flex;align-items:center;gap:18px;border:1.5px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;background:var(--bg)}
+  .ai{width:44px;height:44px;border-radius:10px;background:var(--agentSoft);display:grid;place-items:center;color:var(--agent);font-weight:700;font-size:20px}
+  .an{font-size:24px;font-weight:600;flex:1}
+  .pill{font-size:18px;font-weight:600;border-radius:99px;padding:7px 14px}
+  .p-s{background:var(--surface2);color:var(--muted)} .p-a{background:var(--accentSoft);color:var(--accent)} .p-x{background:var(--agentSoft);color:var(--agent)}
+  .costrow{display:flex;gap:40px;margin-top:22px;font-size:22px;color:var(--muted)}
+  .costrow b{font-family:"Geist Mono";color:var(--ink);font-size:30px;display:block;margin-top:4px}
+  .stamp{position:absolute;right:40px;bottom:36px;border:4px solid var(--good);color:var(--good);font-weight:800;font-size:40px;padding:8px 22px;border-radius:12px;letter-spacing:.06em;transform-origin:center}
+
+  /* scene 3 */
+  .tl{display:grid;gap:18px}
+  .tli{display:flex;align-items:center;gap:18px;font-size:26px;color:var(--faint)}
+  .tick{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--line);display:grid;place-items:center;flex:none}
+  .tli.ok{color:var(--ink)} .tli.ok .tick{border-color:var(--good);background:var(--good)}
+  .tick svg{width:18px;height:18px;opacity:0}
+  .tli.ok .tick svg{opacity:1}
+  .prog{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:28px}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--good))}
+  .big{font-family:"Geist Mono";font-size:26px;color:var(--muted);margin-top:18px;display:flex;justify-content:space-between}
+
+  /* scene 4 */
+  .score{display:flex;align-items:baseline;gap:18px}
+  .score b{font-size:220px;font-weight:800;letter-spacing:-.05em;color:var(--good);line-height:.9;font-variant-numeric:tabular-nums}
+  .score span{font-size:40px;color:var(--muted)}
+  .bars{display:grid;gap:16px;margin-top:30px}
+  .brow{display:grid;grid-template-columns:330px 1fr 90px;gap:18px;align-items:center;font-size:22px;color:var(--muted)}
+  .track{height:14px;border-radius:99px;background:var(--line);overflow:hidden}
+  .track i{display:block;height:100%;border-radius:99px}
+  .brow em{font-style:normal;font-family:"Geist Mono";color:var(--ink);text-align:right}
+
+  /* scene 5 */
+  .checks{display:grid;gap:14px}
+  .ck{display:flex;align-items:center;gap:18px;border:1.5px solid var(--line);border-radius:14px;padding:18px 22px;font-size:26px;background:var(--bg);color:var(--faint)}
+  .ck.ok{color:var(--ink);border-color:rgba(76,196,126,.45)}
+  .ck .tick{width:32px;height:32px}
+  .ck.ok .tick{border-color:var(--good);background:var(--good)} .ck.ok .tick svg{opacity:1}
+  .url{margin-top:28px;display:flex;align-items:center;gap:16px;font-family:"Geist Mono";font-size:28px;background:var(--goodSoft);color:var(--good);border-radius:14px;padding:20px 24px}
+  .dot{width:16px;height:16px;border-radius:50%;background:var(--good)}
+  .ring{position:absolute;width:16px;height:16px;border-radius:50%;border:3px solid var(--good)}
+
+  /* outro */
+  #outro{position:absolute;inset:0;display:grid;place-items:center;opacity:0}
+  .oc{display:grid;justify-items:center;gap:30px;text-align:center}
+  .omark{width:120px;height:120px;border-radius:28px;background:var(--accent);display:grid;place-items:center}
+  .omark svg{width:72px;height:72px}
+  .oword{font-size:150px;font-weight:800;letter-spacing:-.045em;line-height:1}
+  .oword span{color:var(--accent)}
+  .otag{font-size:40px;color:var(--muted)}
+  .lens{display:flex;background:var(--surface2);border:1.5px solid var(--line);border-radius:16px;padding:6px;position:relative;margin-top:10px}
+  .lens div{position:relative;z-index:1;width:190px;text-align:center;font-size:28px;font-weight:600;padding:14px 0;color:var(--muted)}
+  .lens .knob{position:absolute;top:6px;left:6px;width:190px;height:calc(100% - 12px);border-radius:11px;background:var(--surface);box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  #flash{position:absolute;inset:0;background:var(--accent);opacity:0;mix-blend-mode:screen}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grid"></div>
+  <div id="bar"></div>
+
+  <div id="tracker">
+    <div id="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M6 18l6-12 6 12M8.4 13.6h7.2" stroke="#0a0c11" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Architect</div>
+    <div class="step" data-i="0"><b>01</b>Describe</div>
+    <div class="step" data-i="1"><b>02</b>Plan</div>
+    <div class="step" data-i="2"><b>03</b>Build</div>
+    <div class="step" data-i="3"><b>04</b>Prove</div>
+    <div class="step" data-i="4"><b>05</b>Ship</div>
+  </div>
+
+  <!-- 1 Describe -->
+  <section class="scene" id="s0">
+    <div class="headline"><span class="eyebrow">Step 01</span><div class="words"><span class="w"><span>Describe</span></span><span class="w"><span>it.</span></span></div><p class="sub">In plain words, or drop in the spreadsheet you already use.</p></div>
+    <div class="visual"><div class="card">
+      <div class="prompt"><span id="typed"></span><span class="caret" id="caret"></span></div>
+      <div class="chip" id="chip"><i></i><b>invoices.csv</b><span style="color:var(--muted)">1,204 rows · 6 columns</span></div>
+      <div class="toolbar"><span>Attach · Harbor · Tools · Your agents</span><span class="btn" id="planbtn">Plan it ↑</span></div>
+    </div></div>
+  </section>
+
+  <!-- 2 Plan -->
+  <section class="scene" id="s1">
+    <div class="headline"><span class="eyebrow">Step 02</span><div class="words"><span class="w"><span>Sign</span></span><span class="w"><span>the</span></span><span class="w"><span>plan.</span></span></div><p class="sub">Every agent's freedom, every risk, the cost. Before anything runs.</p></div>
+    <div class="visual"><div class="card" style="position:relative">
+      <div class="ptitle">Invoice Review Desk</div>
+      <div class="psub">Build plan · 3 agents · 4 screens</div>
+      <div class="agent a2"><div class="ai">IR</div><div class="an">Intake Reader</div><span class="pill p-x">Acts, then reports</span></div>
+      <div class="agent a2"><div class="ai">AN</div><div class="an">Analyst</div><span class="pill p-s">Suggests only</span></div>
+      <div class="agent a2"><div class="ai">RO</div><div class="an">Router</div><span class="pill p-a">Asks you first</span></div>
+      <div class="costrow"><div>To build<b id="c1">$0.00</b></div><div>Per run<b id="c2">$0.000</b></div><div>Time<b id="c3">0 min</b></div></div>
+      <div class="stamp" id="stamp">SIGNED ✓</div>
+    </div></div>
+  </section>
+
+  <!-- 3 Build -->
+  <section class="scene" id="s2">
+    <div class="headline"><span class="eyebrow">Step 03</span><div class="words"><span class="w"><span>Watch</span></span><span class="w"><span>it</span></span><span class="w"><span>build.</span></span></div><p class="sub">Every step visible. Every change priced first. Undo anything.</p></div>
+    <div class="visual"><div class="card">
+      <div class="tl" id="tl">
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Setting up the project</div>
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Creating 3 agents</div>
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Building the screens</div>
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Connecting agents to screens</div>
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Testing in a real browser</div>
+        <div class="tli"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Verified · checkpoint saved</div>
+      </div>
+      <div class="prog"><i id="prog"></i></div>
+      <div class="big"><span id="pct">0%</span><span id="checks">0/18 checks</span></div>
+    </div></div>
+  </section>
+
+  <!-- 4 Prove -->
+  <section class="scene" id="s3">
+    <div class="headline"><span class="eyebrow">Step 04</span><div class="words"><span class="w"><span>Prove</span></span><span class="w"><span>it</span></span><span class="w"><span>works.</span></span></div><p class="sub">Every agent tested on 1,200 simulated cases before it goes live.</p></div>
+    <div class="visual"><div class="card">
+      <div class="score"><b id="score">0</b><span>/ 100 eval score</span></div>
+      <div class="bars">
+        <div class="brow"><span>Typical invoice</span><div class="track"><i style="background:var(--good)" data-v="98.1"></i></div><em>98.1%</em></div>
+        <div class="brow"><span>Missing details</span><div class="track"><i style="background:var(--accent)" data-v="93.4"></i></div><em>93.4%</em></div>
+        <div class="brow"><span>Duplicate submission</span><div class="track"><i style="background:var(--good)" data-v="95.9"></i></div><em>95.9%</em></div>
+        <div class="brow"><span>Outside your rules</span><div class="track"><i style="background:var(--agent)" data-v="89.2"></i></div><em>89.2%</em></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 5 Ship -->
+  <section class="scene" id="s4">
+    <div class="headline"><span class="eyebrow">Step 05</span><div class="words"><span class="w"><span>Ship</span></span><span class="w"><span>it</span></span><span class="w"><span>safely.</span></span></div><p class="sub">Nothing goes live until every check passes.</p></div>
+    <div class="visual"><div class="card">
+      <div class="checks" id="cks">
+        <div class="ck"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Browser tests</div>
+        <div class="ck"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Security scan</div>
+        <div class="ck"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Secrets in the vault</div>
+        <div class="ck"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Agent evals above 85</div>
+        <div class="ck"><span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#07090e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Spending cap set</div>
+      </div>
+      <div class="url" id="url"><span style="position:relative;display:grid;place-items:center"><span class="dot"></span><span class="ring" id="ring"></span></span>invoice-desk.architect.new<span style="margin-left:auto;font-family:Geist;font-weight:700">LIVE</span></div>
+    </div></div>
+  </section>
+
+  <!-- Outro -->
+  <div id="outro"><div class="oc">
+    <div class="omark" id="omark"><svg viewBox="0 0 24 24" fill="none"><path d="M6 18l6-12 6 12M8.4 13.6h7.2" stroke="#0a0c11" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="oword" id="oword">Architect <span>2.0</span></div>
+    <div class="otag" id="otag">From prompt to production agent, with proof it works.</div>
+    <div class="lens" id="lens"><span class="knob" id="knob"></span><div id="lsimple">Simple</div><div id="lpro">Pro</div></div>
+  </div></div>
+
+  <div id="flash"></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const inExpo = (x) => (x <= 0 ? 0 : Math.pow(2, 10 * x - 10));
+const outBack = (x) => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+const scenes = [
+  { id: "s0", a: 0.0, b: 1.85 },
+  { id: "s1", a: 1.65, b: 3.45 },
+  { id: "s2", a: 3.25, b: 5.05 },
+  { id: "s3", a: 4.85, b: 6.6 },
+  { id: "s4", a: 6.4, b: 7.85 },
+];
+const DURATION = 9.0;
+const PROMPT = "Flag unusual invoices and explain why each one stands out";
+
+function sceneFrame(el, t, a, b) {
+  const lt = t - a;
+  const inP = outExpo(prog(lt, 0, 0.45));
+  const outP = inExpo(prog(t, b - 0.28, b));
+  const visible = t >= a && t <= b;
+  el.style.opacity = visible ? String(Math.min(1, prog(lt, 0, 0.12) * 1) * (1 - outP)) : "0";
+  // headline words: masked rise with stagger
+  el.querySelectorAll(".w span").forEach((w, i) => {
+    const p = outExpo(prog(lt, 0.16 + i * 0.07, 0.52 + i * 0.07));
+    w.style.transform = `translateY(${(1 - p) * 110}%)`;
+  });
+  const eb = el.querySelector(".eyebrow");
+  eb.style.opacity = prog(lt, 0.14, 0.34);
+  eb.style.transform = `translateX(${(1 - outExpo(prog(lt, 0, 0.4))) * -40}px)`;
+  const sub = el.querySelector(".sub");
+  sub.style.opacity = prog(lt, 0.25, 0.5);
+  sub.style.transform = `translateY(${(1 - outExpo(prog(lt, 0.25, 0.6))) * 24}px)`;
+  const head = el.querySelector(".headline");
+  const headOut = prog(t, b - 0.3, b - 0.14);
+  head.style.opacity = String(1 - headOut);
+  head.style.transform = `translateX(${-outExpo(headOut) * 260}px)`;
+  head.style.filter = `blur(${headOut * 16}px)`;
+  const vis = el.querySelector(".visual");
+  const vIn = outBack(prog(lt, 0.12, 0.55));
+  vis.style.transform = `translateX(${(1 - outExpo(prog(lt, 0.12, 0.55))) * 260 - outP * 300}px) scale(${0.88 + 0.12 * vIn}) rotate(${(1 - vIn) * 2.5}deg)`;
+  vis.style.filter = `blur(${(1 - prog(lt, 0.12, 0.34)) * 10 + outP * 16}px)`;
+  vis.style.opacity = String(prog(lt, 0.1, 0.24) * (1 - prog(t, b - 0.28, b - 0.1)));
+  return lt;
+}
+
+function render(t) {
+  // global
+  $("#bar").style.width = `${(t / DURATION) * 100}%`;
+  $("#grid").style.transform = `translate(${-t * 14}px, ${-t * 8}px)`;
+  const stepIdx = t < 1.75 ? 0 : t < 3.35 ? 1 : t < 4.95 ? 2 : t < 6.5 ? 3 : t < 7.7 ? 4 : 5;
+  $$(".step").forEach((s, i) => { s.className = "step" + (i === stepIdx ? " on" : i < stepIdx ? " done" : ""); });
+  const trackerOut = outExpo(prog(t, 7.55, 7.9));
+  $("#tracker").style.opacity = String(prog(t, 0, 0.3) * (1 - trackerOut));
+  $("#tracker").style.transform = `translateY(${(1 - outExpo(prog(t, 0, 0.4))) * -30 - trackerOut * 30}px)`;
+
+  // flash on scene cuts
+  const cuts = [1.72, 3.32, 4.92, 6.48, 7.72];
+  let fl = 0;
+  cuts.forEach((c) => { const d = Math.abs(t - c); if (d < 0.1) fl = Math.max(fl, (1 - d / 0.1) * 0.12); });
+  $("#flash").style.opacity = fl;
+
+  scenes.forEach((s) => sceneFrame(document.getElementById(s.id), t, s.a, s.b));
+
+  // s0: typing + chip + button press
+  {
+    const lt = t - 0;
+    const n = Math.round(PROMPT.length * inOut(prog(lt, 0.3, 1.15)));
+    $("#typed").textContent = PROMPT.slice(0, n);
+    $("#caret").style.opacity = Math.floor(lt * 6) % 2 === 0 || n < PROMPT.length ? 1 : 0;
+    const c = outBack(prog(lt, 1.05, 1.35));
+    $("#chip").style.transform = `scale(${c}) translateY(${(1 - c) * 20}px)`;
+    $("#chip").style.opacity = prog(lt, 1.05, 1.15);
+    const press = prog(lt, 1.45, 1.55) - prog(lt, 1.55, 1.7);
+    $("#planbtn").style.transform = `scale(${1 - press * 0.12})`;
+    $("#planbtn").style.boxShadow = `0 0 0 ${press * 14}px rgba(112,136,255,.35)`;
+  }
+  // s1: agents + counters + stamp
+  {
+    const lt = t - 1.65;
+    $$("#s1 .agent").forEach((a, i) => {
+      const p = outExpo(prog(lt, 0.25 + i * 0.12, 0.55 + i * 0.12));
+      a.style.transform = `translateX(${(1 - p) * 80}px)`;
+      a.style.opacity = p;
+      const pill = a.querySelector(".pill");
+      const pp = outBack(prog(lt, 0.45 + i * 0.12, 0.7 + i * 0.12));
+      pill.style.transform = `scale(${pp})`;
+    });
+    const cp = outExpo(prog(lt, 0.55, 1.25));
+    $("#c1").textContent = `$${(2.85 * cp).toFixed(2)}`;
+    $("#c2").textContent = `$${(0.015 * cp).toFixed(3)}`;
+    $("#c3").textContent = `${Math.round(12 * cp)} min`;
+    const sp = prog(lt, 1.25, 1.42);
+    $("#stamp").style.opacity = sp;
+    $("#stamp").style.transform = `rotate(-8deg) scale(${1.8 - 0.8 * outBack(sp)})`;
+  }
+  // s2: timeline
+  {
+    const lt = t - 3.25;
+    const done = Math.floor(clamp((lt - 0.3) / 0.19, 0, 6));
+    $$("#tl .tli").forEach((li, i) => {
+      li.className = "tli" + (i < done ? " ok" : "");
+      const pop = i < done ? outBack(prog(lt, 0.3 + i * 0.19, 0.42 + i * 0.19)) : 1;
+      li.querySelector(".tick").style.transform = `scale(${pop})`;
+    });
+    const p = inOut(prog(lt, 0.3, 1.45));
+    $("#prog").style.width = `${p * 100}%`;
+    $("#pct").textContent = `${Math.round(p * 100)}%`;
+    $("#checks").textContent = `${Math.round(p * 18)}/18 checks`;
+  }
+  // s3: score + bars
+  {
+    const lt = t - 4.85;
+    const p = outExpo(prog(lt, 0.25, 1.1));
+    $("#score").textContent = Math.round(94 * p);
+    $("#score").style.transform = `scale(${0.9 + 0.1 * outBack(prog(lt, 0.2, 0.55))})`;
+    $$("#s3 .track i").forEach((b, i) => {
+      const v = +b.dataset.v;
+      b.style.width = `${v * outExpo(prog(lt, 0.35 + i * 0.08, 1.0 + i * 0.08))}%`;
+    });
+  }
+  // s4: checks + url
+  {
+    const lt = t - 6.4;
+    const done = Math.floor(clamp((lt - 0.25) / 0.14, 0, 5));
+    $$("#cks .ck").forEach((c, i) => {
+      c.className = "ck" + (i < done ? " ok" : "");
+      const p = outExpo(prog(lt, 0.05 + i * 0.05, 0.3 + i * 0.05));
+      c.style.transform = `translateY(${(1 - p) * 30}px)`;
+      c.style.opacity = p;
+      c.querySelector(".tick").style.transform = `scale(${i < done ? outBack(prog(lt, 0.25 + i * 0.14, 0.37 + i * 0.14)) : 1})`;
+    });
+    const u = outBack(prog(lt, 0.95, 1.2));
+    $("#url").style.transform = `scale(${u})`;
+    $("#url").style.opacity = prog(lt, 0.95, 1.02);
+    const r = (lt * 1.6) % 1;
+    $("#ring").style.transform = `scale(${1 + r * 2.4})`;
+    $("#ring").style.opacity = lt > 1 ? 1 - r : 0;
+  }
+  // outro
+  {
+    const lt = t - 7.6;
+    $("#outro").style.opacity = lt > 0 ? prog(lt, 0, 0.15) : 0;
+    const m = outBack(prog(lt, 0.05, 0.4));
+    $("#omark").style.transform = `scale(${m}) rotate(${(1 - m) * -40}deg)`;
+    const w = outExpo(prog(lt, 0.15, 0.55));
+    $("#oword").style.transform = `translateY(${(1 - w) * 60}px)`;
+    $("#oword").style.opacity = w;
+    $("#oword").style.letterSpacing = `${-0.045 + (1 - w) * 0.08}em`;
+    const g = outExpo(prog(lt, 0.3, 0.65));
+    $("#otag").style.opacity = g;
+    $("#otag").style.transform = `translateY(${(1 - g) * 24}px)`;
+    const l = outExpo(prog(lt, 0.45, 0.75));
+    $("#lens").style.opacity = l;
+    $("#lens").style.transform = `scale(${0.9 + 0.1 * l})`;
+    const k = inOut(prog(lt, 0.85, 1.05));
+    $("#knob").style.transform = `translateX(${k * 190}px)`;
+    $("#lsimple").style.color = k < 0.5 ? "var(--ink)" : "var(--muted)";
+    $("#lpro").style.color = k >= 0.5 ? "var(--ink)" : "var(--muted)";
+  }
+}
+window.render = render;
+window.DURATION = DURATION;
+render(0);
+// Preview mode: plays in real time when opened directly.
+if (!location.hash.includes("capture")) {
+  let start = performance.now();
+  const loop = (now) => { const t = ((now - start) / 1000) % (DURATION + 0.6); render(Math.min(t, DURATION)); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

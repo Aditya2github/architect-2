@@ -75,6 +75,15 @@ export default function Landing() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-6xl px-5 pt-16" aria-label="Product film">
+          <div className="overflow-hidden rounded-2xl border border-line bg-[#07090e] shadow-2xl">
+            <video className="block aspect-video w-full" autoPlay muted loop playsInline preload="metadata" poster="/architect-hero-poster.jpg" aria-label="Architect in 9 seconds: describe it, sign the plan, watch it build, prove it works, ship it safely">
+              <source src="/architect-hero.webm" type="video/webm" />
+              <source src="/architect-hero.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </section>
+
         <section className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-center">
           <div className="grid content-start gap-4">
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">One project, two views</p>
